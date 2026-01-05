@@ -1,15 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
-  import { getSubscriberPaymentCycles } from '$lib/api/subscribers';
+  import { getSubscriberById, getSubscriberPaymentCycles, type Subscriber } from '$lib/api/subscribers';
   import { updatePaymentCycle, deletePaymentCycle, type PaymentCycle } from '$lib/api/payment_cycles';
   import CycleManagerModal from '$lib/components/subscribers/CycleManagerModal.svelte';
   import SendLinkModal from '$lib/components/subscribers/SendLinkModal.svelte';
   import CouponModal from '$lib/components/subscribers/CouponModal.svelte';
+  import { listPriceRules, type PriceRule } from '$lib/api/price_rules';
+  import { computeCycleTotal } from '$lib/utils/pricing';
 
   const subscriberId = $page.params.id;
 
   let cycles: PaymentCycle[] = [];
+  let subscriber: Subscriber | null = null;
+  let priceRules: PriceRule[] = [];
   let isLoading = true;
   let error: string | null = null;
 
@@ -22,8 +26,28 @@
     isLoading = true;
     error = null;
     try {
+      subscriber = await getSubscriberById(subscriberId);
       const all = await getSubscriberPaymentCycles(subscriberId);
       cycles = all.filter((c) => c.is_due);
+
+      // Load pricing rules for the month range covering all due cycles.
+      // We keep it simple and safe: min start -> max end across shown cycles.
+      if (subscriber && cycles.length > 0) {
+        try {
+          const starts = cycles.map((c) => new Date(c.start_date)).filter((d) => !Number.isNaN(d.getTime()));
+          const ends = cycles.map((c) => new Date(c.end_date)).filter((d) => !Number.isNaN(d.getTime()));
+          const minStart = new Date(Math.min(...starts.map((d) => +d)));
+          const maxEnd = new Date(Math.max(...ends.map((d) => +d)));
+          const startYmd = minStart.toISOString().split('T')[0];
+          const endYmd = maxEnd.toISOString().split('T')[0];
+          priceRules = await listPriceRules({ start: startYmd, end: endYmd });
+        } catch (e) {
+          // Pricing is optional; fall back to stored cycle.amount if rules cannot be loaded.
+          priceRules = [];
+        }
+      } else {
+        priceRules = [];
+      }
     } catch (e: any) {
       error = e.message || 'Failed to load due payments';
     } finally {
@@ -45,6 +69,17 @@
   function handlePaymentLink(cycle: PaymentCycle) {
     selectedCycle = cycle;
     showLinkModal = true;
+  }
+
+  function ymdFromIso(iso: string) {
+    return new Date(iso).toISOString().split('T')[0];
+  }
+
+  function computedTotal(cycle: PaymentCycle) {
+    if (!subscriber) return Number(cycle.amount || 0);
+    const startYmd = ymdFromIso(cycle.start_date);
+    const endYmd = ymdFromIso(cycle.end_date);
+    return computeCycleTotal({ subscriber, startYmd, endYmd, rules: priceRules, defaultPrice: 8 });
   }
 
   function handleAddCoupon(cycle: PaymentCycle) {
@@ -91,7 +126,7 @@
         <thead class="bg-gray-50">
           <tr>
             <th class="th">Billing Period</th>
-            <th class="th text-right">Amount</th>
+            <th class="th text-right">Total</th>
             <th class="th text-right">Coupon</th>
             <th class="th text-right">Payment Left</th>
             <th class="th text-right">Actions</th>
@@ -111,9 +146,9 @@
                   <div class="font-medium text-gray-800">{formatDate(cycle.start_date)}</div>
                   <div class="text-xs text-gray-500">to {formatDate(cycle.end_date)}</div>
                 </td>
-                <td class="td text-right font-mono">₹{Number(cycle.amount || 0).toFixed(2)}</td>
+                <td class="td text-right font-mono">₹{computedTotal(cycle).toFixed(2)}</td>
                 <td class="td text-right font-mono">₹{Number(cycle.coupon_amount || 0).toFixed(2)}</td>
-                <td class="td text-right font-mono">₹{(Number(cycle.amount || 0) - Number(cycle.coupon_amount || 0)).toFixed(2)}</td>
+                <td class="td text-right font-mono">₹{(computedTotal(cycle) - Number(cycle.coupon_amount || 0)).toFixed(2)}</td>
                 <td class="td text-right">
                   <div class="flex justify-end gap-2 flex-wrap">
                     <button class="btn-action" on:click={() => handlePaymentLink(cycle)}>Payment Link</button>

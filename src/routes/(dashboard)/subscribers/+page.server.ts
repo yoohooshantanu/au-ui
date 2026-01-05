@@ -1,8 +1,9 @@
 import type { PageServerLoad } from './$types';
 import { getLookups } from '$lib/api/dashboard'; // <-- FIXED: Renamed from getUnitsLookup
 import { getSubscribers } from '$lib/api/subscribers';
+import { getPaymentCycles } from '$lib/api/payment_cycles';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, fetch }) => {
 	// Extract all possible filter and pagination parameters from the URL
 	const page = Number(url.searchParams.get('page') ?? 1);
 	const search = url.searchParams.get('search') ?? undefined;
@@ -13,22 +14,50 @@ export const load: PageServerLoad = async ({ url }) => {
 	const landmark = url.searchParams.get('landmark') ?? undefined; // <-- ADDED
 	const has_due_payment = url.searchParams.get('has_due_payment') === 'true'; // <-- ADDED
 
+	// Create a wrapper that adds the full URL for server-side requests
+	const serverFetch = (input: RequestInfo | URL, init?: RequestInit) => {
+		const url = input instanceof URL ? input.toString() : (typeof input === 'string' ? input : input.toString());
+		const fullUrl = url.startsWith('/api') ? `http://10.59.51.124:8090${url}` : url;
+		return fetch(fullUrl, init);
+	};
+
 	try {
-		// Fetch both the subscriber list and the filter dropdown data in parallel for performance.
-		const [subscribersData, lookups] = await Promise.all([
-			// Pass all extracted parameters to the API client function
-			getSubscribers({
-				page,
-				search,
-				city,
-				unit,
-				pincode,
-				center_name,
-				landmark,
-				has_due_payment
-			}),
-			getLookups() // <-- FIXED: Call the correct function
-		]);
+		const lookupsPromise = getLookups(serverFetch);
+		let subscriberIds: string[] | undefined = undefined;
+
+		if (has_due_payment) {
+			const dueCycles = await getPaymentCycles({ is_due: true, perPage: 500 }, serverFetch);
+			const ids = Array.from(
+				new Set(
+					(dueCycles.items ?? [])
+						.map((cycle) => cycle?.subscriber)
+						.filter((id): id is string => Boolean(id))
+				)
+			);
+			subscriberIds = ids.length > 0 ? ids : ['__none__']; // '__none__' will force an empty result set
+		}
+
+		const subscribersData =
+			has_due_payment && subscriberIds?.[0] === '__none__'
+				? {
+						page: 1,
+						perPage: 25,
+						totalItems: 0,
+						totalPages: 1,
+						items: []
+				  }
+				: await getSubscribers({
+						page,
+						search,
+						city,
+						unit,
+						pincode,
+						center_name,
+						landmark,
+						subscriberIds: subscriberIds?.[0] === '__none__' ? [] : subscriberIds
+				  }, serverFetch);
+
+		const lookups = await lookupsPromise; // <-- FIXED: Call the correct function
 
 		// Return the successfully fetched data to the page component
 		return {

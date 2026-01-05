@@ -89,6 +89,25 @@
 				</p>
 			</div>
 		</div>
+
+		<!-- Quick Actions -->
+		<div class="mt-8">
+			<h2 class="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+				<a href="/inventory" class="block p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+					<h3 class="text-lg font-medium text-gray-900">Inventory Management</h3>
+					<p class="mt-1 text-sm text-gray-500">Allocate stock and view remaining inventory per center.</p>
+				</a>
+				<a href="/users" class="block p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+					<h3 class="text-lg font-medium text-gray-900">AU POCs</h3>
+					<p class="mt-1 text-sm text-gray-500">Manage point-of-contact users for cities and centers.</p>
+				</a>
+				<a href="/reports/monthly-billing" class="block p-6 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+					<h3 class="text-lg font-medium text-gray-900">Monthly Billing</h3>
+					<p class="mt-1 text-sm text-gray-500">View billing reports with dynamic pricing applied.</p>
+				</a>
+			</div>
+		</div>
 	{/if}
 </div>
 

@@ -28,39 +28,48 @@ export interface PaginatedSubscribers {
 }
 
 export async function getSubscribers(
-	// --- UPDATED ---
-	// Add the new optional parameters for filtering
 	params: {
 		page?: number;
 		search?: string;
 		city?: string;
 		unit?: string;
 		pincode?: string;
-		center_name?: string; // <-- NEW
-		landmark?: string;    // <-- NEW
-		has_due_payment?: boolean;
-	} = {}
+		center_name?: string;
+		landmark?: string;
+		subscriberIds?: string[];
+	} = {},
+	customFetch?: typeof fetch
 ): Promise<PaginatedSubscribers> {
 	const query = new URLSearchParams();
+	const filters: string[] = [];
+	const fetchFn = customFetch || fetch;
 
-	// Set parameters if they exist
+	function quote(value: string) {
+		return `'${value.replace(/'/g, "\\'")}'`;
+	}
+
 	if (params.page) query.set('page', params.page.toString());
-	if (params.search) query.set('search', params.search);
-	if (params.city) query.set('city', params.city);
-	if (params.unit) query.set('unit', params.unit);
-	if (params.pincode) query.set('pincode', params.pincode);
-	if (params.has_due_payment) query.set('has_due_payment', 'true');
-	
-	// --- NEW ---
-	// Add the new filter parameters to the query string
-	if (params.center_name) query.set('center_name', params.center_name);
-	if (params.landmark) query.set('landmark', params.landmark);
-	// --- END NEW ---
 
-	const response = await fetch(`${API_BASE_URL}/collections/subscribers/records?${query.toString()}`);
+	if (params.search) {
+		const term = quote(params.search);
+		filters.push(`(name ~ ${term} || phone ~ ${term} || center_name ~ ${term} || landmark ~ ${term})`);
+	}
+	if (params.city) filters.push(`city = ${quote(params.city)}`);
+	if (params.unit) filters.push(`unit = ${quote(params.unit)}`);
+	if (params.pincode) filters.push(`pincode = ${quote(params.pincode)}`);
+	if (params.center_name) filters.push(`center_name = ${quote(params.center_name)}`);
+	if (params.landmark) filters.push(`landmark = ${quote(params.landmark)}`);
+	if (params.subscriberIds?.length) {
+		const subset = params.subscriberIds.map((id) => `id = ${quote(id)}`).join(' || ');
+		filters.push(`(${subset})`);
+	}
+
+	if (filters.length > 0) query.set('filter', filters.join(' && '));
+	query.set('perPage', '25');
+
+	const response = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?${query.toString()}`);
 
 	if (!response.ok) {
-		// You can add more detailed error handling here if needed
 		const errorData = await response.json().catch(() => ({ message: 'Failed to fetch subscribers' }));
 		throw new Error(errorData.message || 'An unknown error occurred');
 	}

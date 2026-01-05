@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { Subscriber } from '$lib/api/subscribers';
 	import { createEventDispatcher } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { deleteSubscriber, getSubscriberPaymentCycles } from '$lib/api/subscribers';
 	import { createPaymentCycle, type PaymentCycle } from '$lib/api/payment_cycles';
+	import { canDeleteSubscribers } from '$lib/auth';
 	import CycleManagerModal from './CycleManagerModal.svelte';
 
 	export let subscribers: Subscriber[] = [];
@@ -13,6 +15,11 @@
 	let showCycleModal = false;
 	let selectedSubscriberIdForCycle: string | null = null;
 	let selectedCycle: PaymentCycle | null = null;
+	let canDelete = false;
+
+	onMount(() => {
+		canDelete = canDeleteSubscribers();
+	});
 
 	function toggleExpand(subscriberId: string) {
 		expandedSubscriberId = expandedSubscriberId === subscriberId ? null : subscriberId;
@@ -111,9 +118,11 @@
 						<td class="p-4 text-right">
 							<div class="flex justify-end gap-2" on:click|stopPropagation>
 								<button on:click={() => dispatch('edit', sub)} class="btn-action">Edit</button>
-								<button on:click={() => handleDeleteSubscriber(sub)} class="btn-action-destructive">
-									Delete
-								</button>
+								{#if canDelete}
+									<button on:click={() => handleDeleteSubscriber(sub)} class="btn-action-destructive">
+										Delete
+									</button>
+								{/if}
 							</div>
 						</td>
 					</tr>

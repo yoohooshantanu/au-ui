@@ -17,6 +17,17 @@
     <p class="mt-1 text-gray-500">Generate and download operational reports.</p>
   </div>
 
+  <div class="bg-white p-6 rounded-lg shadow-md">
+    <h3 class="text-lg font-semibold text-gray-800 mb-2">Quick Reports</h3>
+    <p class="text-sm text-gray-500 mb-4">Open pre-built reports.</p>
+    <a
+      href="/reports/monthly-billing"
+      class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+    >
+      Monthly Billing
+    </a>
+  </div>
+
   <!-- Report Generation Section -->
   <div class="bg-white p-6 rounded-lg shadow-md">
     <h3 class="text-lg font-semibold text-gray-800 mb-4">

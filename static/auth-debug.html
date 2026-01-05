@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+</head>
+<body>
+    <h1>Auth Debug Info</h1>
+    <div id="debug"></div>
+    
+    <script>
+        const debug = document.getElementById('debug');
+        
+        // Check localStorage
+        const authToken = localStorage.getItem('authToken');
+        const authUser = localStorage.getItem('authUser');
+        const user = localStorage.getItem('user');
+        const pbAuth = localStorage.getItem('pocketbase_auth');
+        
+        debug.innerHTML = `
+            <h2>LocalStorage:</h2>
+            <p>authToken: ${authToken ? 'EXISTS' : 'MISSING'}</p>
+            <p>authUser: ${authUser ? JSON.stringify(authUser) : 'MISSING'}</p>
+            <p>user: ${user ? JSON.stringify(user) : 'MISSING'}</p>
+            <p>pocketbase_auth: ${pbAuth ? JSON.stringify(pbAuth) : 'MISSING'}</p>
+            
+            <h2>Cookies:</h2>
+            <p>document.cookie: ${document.cookie}</p>
+        `;
+        
+        // Try to fetch from API
+        fetch('/api/collections/subscribers/records?perPage=1', {
+            headers: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+        })
+        .then(r => debug.innerHTML += `<p>API Test: ${r.status} ${r.statusText}</p>`)
+        .catch(e => debug.innerHTML += `<p>API Error: ${e.message}</p>`);
+    </script>
+</body>
+</html>

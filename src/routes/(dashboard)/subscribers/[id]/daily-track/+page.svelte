@@ -4,6 +4,8 @@
 	import { getSubscriberById, type Subscriber } from '$lib/api/subscribers';
 	import { getSubscriberPaymentCycles } from '$lib/api/subscribers';
 	import type { PaymentCycle } from '$lib/api/payment_cycles';
+	import { listPriceRules, type PriceRule } from '$lib/api/price_rules';
+	import { resolveDailyPrice } from '$lib/utils/pricing';
 	import {
 		createMissedDelivery,
 		deleteMissedDelivery,
@@ -17,11 +19,13 @@
 	let subscriber: Subscriber | null = null;
 	let billingCycle: PaymentCycle | null = null;
 
-	let monthCursor = new Date(); // the month shown in calendar
+	let monthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1); // the month shown in calendar
 	let isLoading = true;
 	let isMonthLoading = true;
 	let error: string | null = null;
 	let monthError: string | null = null;
+	let pricingError: string | null = null;
+	let priceRules: PriceRule[] = [];
 	let showReasonModal = false;
 	let selectedTodayKey: string | null = null;
 
@@ -178,8 +182,37 @@
 		return count;
 	})();
 
-	$: dailyPrice = calcDailyPrice(billingCycle);
-	$: totalDeduction = missedDaysCount * dailyPrice;
+	async function loadPricingRules() {
+		if (!subscriber) {
+			pricingError = null;
+			priceRules = [];
+			return;
+		}
+		try {
+			pricingError = null;
+			priceRules = await listPriceRules({ start: monthStart, end: monthEnd });
+		} catch (e: any) {
+			// Pricing is optional; fall back to default pricing.
+			pricingError = e.message || 'Pricing rules not available';
+			priceRules = [];
+		}
+	}
+
+	$: monthStart, monthEnd, subscriber, loadPricingRules();
+
+	$: dailyPrice = subscriber
+		? resolveDailyPrice({ subscriber, dateYmd: todayYmd(), rules: priceRules, defaultPrice: 8 })
+		: calcDailyPrice(billingCycle);
+
+	$: totalDeduction = (() => {
+		if (!subscriber) return missedDaysCount * dailyPrice;
+		let sum = 0;
+		for (const key of missedByDate.keys()) {
+			if (key < monthStart || key > monthEnd) continue;
+			sum += resolveDailyPrice({ subscriber, dateYmd: key, rules: priceRules, defaultPrice: 8 });
+		}
+		return sum;
+	})();
 
 	async function loadPage() {
 		isLoading = true;
@@ -192,13 +225,8 @@
 			// Make the visible calendar month match the active context.
 			// If today's date is inside the billing cycle, show current month.
 			// Otherwise, show the billing cycle's month so days aren't all disabled.
-			if (billingCycle) {
-				if (cycleContainsToday(billingCycle)) {
-					monthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-				} else {
-					const start = new Date(billingCycle.start_date);
-					monthCursor = new Date(start.getFullYear(), start.getMonth(), 1);
-				}
+			if (billingCycle && cycleContainsToday(billingCycle)) {
+				monthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 			}
 		} catch (e: any) {
 			error = e.message || 'Failed to load daily track';
@@ -391,6 +419,9 @@
 						<span class="text-gray-600">Daily price</span>
 						<span class="font-mono text-gray-900">₹{dailyPrice.toFixed(2)}</span>
 					</div>
+					{#if pricingError}
+						<div class="text-xs text-gray-500">{pricingError}. Using default pricing.</div>
+					{/if}
 					<div class="flex justify-between border-t border-gray-200 pt-2">
 						<span class="text-gray-600">Total deduction</span>
 						<span class="font-mono font-semibold text-gray-900">₹{totalDeduction.toFixed(2)}</span>

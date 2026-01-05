@@ -1,20 +1,22 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getUsers, deleteUser, type User } from '$lib/api/users';
-	import UserList from '$lib/components/users/UserList.svelte';
-	import UserForm from '$lib/components/users/UserForm.svelte';
+	import { getPocUsers, deletePocUser, type PocUser } from '$lib/api/poc';
+	import { getLookups, type Lookups } from '$lib/api/dashboard';
+	import PocList from '$lib/components/poc/PocList.svelte';
+	import PocForm from '$lib/components/poc/PocForm.svelte';
 
-	let users: User[] = [];
+	let users: PocUser[] = [];
+	let lookups: Lookups | null = null;
 	let isLoading = true;
 	let error = '';
 	let showForm = false;
-	let selectedUser: User | null = null;
+	let selectedUser: PocUser | null = null;
 
 	async function loadUsers() {
 		isLoading = true;
 		error = '';
 		try {
-			users = await getUsers();
+			users = await getPocUsers();
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -22,24 +24,31 @@
 		}
 	}
 
-	onMount(loadUsers);
+	onMount(async () => {
+		await loadUsers();
+		try {
+			lookups = await getLookups();
+		} catch (e: any) {
+			console.error('Failed to load lookups:', e);
+		}
+	});
 
 	function handleAdd() {
 		selectedUser = null;
 		showForm = true;
 	}
 
-	function handleEdit(event: CustomEvent<User>) {
+	function handleEdit(event: CustomEvent<PocUser>) {
 		selectedUser = event.detail;
 		showForm = true;
 	}
 
-async function handleDelete(event: CustomEvent<string>) {
+	async function handleDelete(event: CustomEvent<string>) {
 		const userId = event.detail;
-		if (confirm('Are you sure you want to delete this user?')) {
+		if (confirm('Are you sure you want to delete this POC user?')) {
 			try {
-				await deleteUser(userId);
-				await loadUsers(); // Refresh the list
+				await deletePocUser(userId);
+				await loadUsers();
 			} catch (e: any) {
 				alert(`Error: ${e.message}`);
 			}
@@ -50,21 +59,22 @@ async function handleDelete(event: CustomEvent<string>) {
 <div>
 	<div class="flex justify-between items-center mb-6">
 		<h1 class="text-3xl font-bold text-gray-900">AU POCs</h1>
-		<button on:click={handleAdd} class="btn-primary"> Add New User </button>
+		<button on:click={handleAdd} class="btn-primary">Add New POC</button>
 	</div>
 
 	{#if isLoading}
-		<p>Loading users...</p>
+		<p>Loading POCs...</p>
 	{:else if error}
 		<p class="text-red-600">{error}</p>
 	{:else}
-		<UserList {users} on:edit={handleEdit} on:delete={handleDelete} />
+		<PocList {users} {lookups} on:edit={handleEdit} on:delete={handleDelete} />
 	{/if}
 </div>
 
 {#if showForm}
-	<UserForm
+	<PocForm
 		user={selectedUser}
+		{lookups}
 		on:cancel={() => (showForm = false)}
 		on:success={() => {
 			showForm = false;

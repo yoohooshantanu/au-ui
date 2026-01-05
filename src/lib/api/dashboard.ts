@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { authFetch } from '$lib/auth';
 
 // Defines the shape of the statistics object from your API
 export interface DashboardStats {
@@ -19,23 +20,25 @@ export interface Lookups {
 
 /**
  * Fetches the main statistics for the dashboard homepage.
- * (No changes needed in this function)
  */
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(customFetch?: typeof fetch): Promise<DashboardStats> {
 	try {
 		// Get current month dates
 		const now = new Date();
 		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
 		const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
+		// Use customFetch if provided, otherwise use global fetch
+		const fetchFn = customFetch || fetch;
+
 		// Fetch subscribers
-		const subscribersResponse = await fetch(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`);
+		const subscribersResponse = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`);
 		if (!subscribersResponse.ok) throw new Error('Failed to fetch subscribers');
 		const subscribersData = await subscribersResponse.json();
 		const subscribers = subscribersData.items || [];
 
 		// Fetch payment cycles
-		const paymentCyclesResponse = await fetch(`${API_BASE_URL}/collections/payment_cycles/records?perPage=1000`);
+		const paymentCyclesResponse = await fetchFn(`${API_BASE_URL}/collections/payment_cycles/records?perPage=1000`);
 		if (!paymentCyclesResponse.ok) throw new Error('Failed to fetch payment cycles');
 		const paymentCyclesData = await paymentCyclesResponse.json();
 		const paymentCycles = paymentCyclesData.items || [];
@@ -71,48 +74,38 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 /**
- * --- UPDATED & RENAMED ---
- * Fetches lists of unique data for UI dropdowns (units, cities, centers, landmarks).
- * This now fetches all lookups from the API in parallel, replacing the mocked data.
+ * --- UPDATED ---
+ * Fetches unique values from existing subscribers table for dropdowns
+ * Extracts unique units, cities, centers, and landmarks from subscriber records
  */
-export async function getLookups(): Promise<Lookups> {
+export async function getLookups(customFetch?: typeof fetch): Promise<Lookups> {
 	try {
-		// Use Promise.all to fetch all lookups concurrently for better performance
-		const [unitsResponse, citiesResponse, centersResponse, landmarksResponse] = await Promise.all([
-		fetch(`${API_BASE_URL}/collections/units/records`),
-		fetch(`${API_BASE_URL}/collections/cities/records`),
-		fetch(`${API_BASE_URL}/collections/center_names/records`),
-		fetch(`${API_BASE_URL}/collections/landmarks/records`)
-		]);
-
-		// Check if any of the requests failed
-		if (!unitsResponse.ok) throw new Error('Failed to fetch units lookup');
-		if (!citiesResponse.ok) throw new Error('Failed to fetch cities lookup');
-		if (!centersResponse.ok) throw new Error('Failed to fetch center names lookup');
-		if (!landmarksResponse.ok) throw new Error('Failed to fetch landmarks lookup');
-
-		// Parse all JSON responses
-		const unitsData = await unitsResponse.json();
-		const citiesData = await citiesResponse.json();
-		const centersData = await centersResponse.json();
-		const landmarksData = await landmarksResponse.json();
-
-		// Combine the results from all responses into a single Lookups object
-		return {
-			...unitsData,   // Expects { units: [...] }
-			...citiesData,  // Expects { cities: [...] }
-			...centersData, // Expects { center_names: [...] }
-			...landmarksData// Expects { landmarks: [...] }
-		};
-
+		// Fetch all subscribers to extract unique values
+		const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`, {}, customFetch);
+		if (!response.ok) {
+			console.warn('Failed to fetch subscribers for lookups');
+			return { units: [], cities: [], center_names: [], landmarks: [] };
+		}
+		
+		const data = await response.json();
+		const subscribers: any[] = data.items || [];
+		
+		// Extract unique values with proper typing
+		const units = [...new Set(subscribers.map((s: any) => s.unit).filter(Boolean))] as string[];
+		const cities = [...new Set(subscribers.map((s: any) => s.city).filter(Boolean))] as string[];
+		const center_names = [...new Set(subscribers.map((s: any) => s.center_name).filter(Boolean))] as string[];
+		const landmarks = [...new Set(subscribers.map((s: any) => s.landmark).filter(Boolean))] as string[];
+		
+		// Sort alphabetically
+		units.sort();
+		cities.sort();
+		center_names.sort();
+		landmarks.sort();
+		
+		return { units, cities, center_names, landmarks };
 	} catch (error) {
-		console.error("Error fetching lookups:", error);
-		// Return a default empty state in case of failure so the UI doesn't crash
-		return {
-			units: [],
-			cities: [],
-			center_names: [],
-			landmarks: []
-		};
+		console.error('Error fetching lookups:', error);
+		// Return empty lookups on error
+		return { units: [], cities: [], center_names: [], landmarks: [] };
 	}
 }

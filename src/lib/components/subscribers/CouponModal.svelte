@@ -1,11 +1,38 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
+	import { getCoupons, type Coupon } from '$lib/api/coupons';
 
 	export let initialCouponAmount: number = 0;
 	const dispatch = createEventDispatcher();
 
+	let coupons: Coupon[] = [];
+	let isLoading = true;
+	let loadError = '';
+
+	let selectedCouponId: string = '__custom__';
 	let couponAmount: number = initialCouponAmount;
 	let errorMessage = '';
+
+	onMount(async () => {
+		isLoading = true;
+		loadError = '';
+		try {
+			coupons = (await getCoupons()).filter((c) => c.is_active !== false);
+			const matched = coupons.find((c) => Number(c.amount) === Number(initialCouponAmount));
+			if (matched) selectedCouponId = matched.id;
+		} catch (e: any) {
+			loadError = e.message || 'Failed to load coupons';
+		} finally {
+			isLoading = false;
+		}
+	});
+
+	$: {
+		if (selectedCouponId && selectedCouponId !== '__custom__') {
+			const selected = coupons.find((c) => c.id === selectedCouponId);
+			if (selected) couponAmount = Number(selected.amount);
+		}
+	}
 
 	function handleSave() {
 		errorMessage = '';
@@ -26,6 +53,25 @@
 		<h3 class="font-bold text-lg mb-4 text-gray-900">Add Coupon</h3>
 
 		<div class="mb-4">
+			<label for="coupon_select" class="block text-sm font-medium text-gray-700 mb-1">Coupon Category</label>
+			<select
+				id="coupon_select"
+				class="block w-full rounded-md border-gray-300 shadow-sm"
+				bind:value={selectedCouponId}
+				disabled={isLoading}
+			>
+				<option value="__custom__">Custom</option>
+				{#each coupons as c (c.id)}
+					<option value={c.id}>{c.name} (₹{Number(c.amount || 0)})</option>
+				{/each}
+			</select>
+			{#if loadError}
+				<p class="text-xs text-red-600 mt-1">{loadError}</p>
+			{/if}
+			<p class="text-xs text-gray-500 mt-1">Manage coupons from <code class="font-mono">/coupons</code>.</p>
+		</div>
+
+		<div class="mb-4">
 			<label for="coupon" class="block text-sm font-medium text-gray-700 mb-1">Coupon Amount (₹)</label>
 			<input
 				type="number"
@@ -33,6 +79,7 @@
 				class="block w-full rounded-md border-gray-300 shadow-sm"
 				bind:value={couponAmount}
 				min="0"
+				disabled={selectedCouponId !== '__custom__'}
 			/>
 		</div>
 
