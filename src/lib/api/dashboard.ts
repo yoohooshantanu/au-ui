@@ -20,23 +20,25 @@ export interface Lookups {
 
 /**
  * Fetches the main statistics for the dashboard homepage.
- * (No changes needed in this function)
  */
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(customFetch?: typeof fetch): Promise<DashboardStats> {
 	try {
 		// Get current month dates
 		const now = new Date();
 		const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
 		const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
+		// Use customFetch if provided, otherwise use global fetch
+		const fetchFn = customFetch || fetch;
+
 		// Fetch subscribers
-		const subscribersResponse = await fetch(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`);
+		const subscribersResponse = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`);
 		if (!subscribersResponse.ok) throw new Error('Failed to fetch subscribers');
 		const subscribersData = await subscribersResponse.json();
 		const subscribers = subscribersData.items || [];
 
 		// Fetch payment cycles
-		const paymentCyclesResponse = await fetch(`${API_BASE_URL}/collections/payment_cycles/records?perPage=1000`);
+		const paymentCyclesResponse = await fetchFn(`${API_BASE_URL}/collections/payment_cycles/records?perPage=1000`);
 		if (!paymentCyclesResponse.ok) throw new Error('Failed to fetch payment cycles');
 		const paymentCyclesData = await paymentCyclesResponse.json();
 		const paymentCycles = paymentCyclesData.items || [];
@@ -76,23 +78,23 @@ export async function getDashboardStats(): Promise<DashboardStats> {
  * Fetches unique values from existing subscribers table for dropdowns
  * Extracts unique units, cities, centers, and landmarks from subscriber records
  */
-export async function getLookups(): Promise<Lookups> {
+export async function getLookups(customFetch?: typeof fetch): Promise<Lookups> {
 	try {
 		// Fetch all subscribers to extract unique values
-		const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`);
+		const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records?perPage=1000`, {}, customFetch);
 		if (!response.ok) {
 			console.warn('Failed to fetch subscribers for lookups');
 			return { units: [], cities: [], center_names: [], landmarks: [] };
 		}
 		
 		const data = await response.json();
-		const subscribers = data.items || [];
+		const subscribers: any[] = data.items || [];
 		
-		// Extract unique values
-		const units = [...new Set(subscribers.map((s: any) => s.unit).filter(Boolean))];
-		const cities = [...new Set(subscribers.map((s: any) => s.city).filter(Boolean))];
-		const center_names = [...new Set(subscribers.map((s: any) => s.center_name).filter(Boolean))];
-		const landmarks = [...new Set(subscribers.map((s: any) => s.landmark).filter(Boolean))];
+		// Extract unique values with proper typing
+		const units = [...new Set(subscribers.map((s: any) => s.unit).filter(Boolean))] as string[];
+		const cities = [...new Set(subscribers.map((s: any) => s.city).filter(Boolean))] as string[];
+		const center_names = [...new Set(subscribers.map((s: any) => s.center_name).filter(Boolean))] as string[];
+		const landmarks = [...new Set(subscribers.map((s: any) => s.landmark).filter(Boolean))] as string[];
 		
 		// Sort alphabetically
 		units.sort();

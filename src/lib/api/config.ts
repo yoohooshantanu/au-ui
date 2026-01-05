@@ -1,2 +1,2 @@
-// Use localhost for server-side requests during SSR, and /api proxy for client-side (browser) requests
-export const API_BASE_URL = 'http://127.0.0.1:8090/api';
+// Use /api proxy for client-side requests (browser), which forwards to PocketBase on port 8090
+export const API_BASE_URL = '/api';

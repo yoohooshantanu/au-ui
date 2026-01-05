@@ -37,10 +37,12 @@ export async function getSubscribers(
 		center_name?: string;
 		landmark?: string;
 		subscriberIds?: string[];
-	} = {}
+	} = {},
+	customFetch?: typeof fetch
 ): Promise<PaginatedSubscribers> {
 	const query = new URLSearchParams();
 	const filters: string[] = [];
+	const fetchFn = customFetch || fetch;
 
 	function quote(value: string) {
 		return `'${value.replace(/'/g, "\\'")}'`;
@@ -65,7 +67,7 @@ export async function getSubscribers(
 	if (filters.length > 0) query.set('filter', filters.join(' && '));
 	query.set('perPage', '25');
 
-	const response = await fetch(`${API_BASE_URL}/collections/subscribers/records?${query.toString()}`);
+	const response = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?${query.toString()}`);
 
 	if (!response.ok) {
 		const errorData = await response.json().catch(() => ({ message: 'Failed to fetch subscribers' }));

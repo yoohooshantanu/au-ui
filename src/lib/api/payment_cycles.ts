@@ -54,9 +54,11 @@ export async function getPaymentCycles(
 		is_due?: boolean | null;
 		month?: string; // Format should be "YYYY-MM"
 		subscriber?: string; // Filter by a specific subscriber ID
-	} = {}
+	} = {},
+	customFetch?: typeof fetch
 ): Promise<PaginatedPaymentCycles> {
 	const query = new URLSearchParams();
+	const fetchFn = customFetch || fetch;
 
 	if (params.page) query.set('page', params.page.toString());
 	if (params.perPage) query.set('perPage', params.perPage.toString());
@@ -67,7 +69,7 @@ export async function getPaymentCycles(
 	if (params.month) query.set('month', params.month);
 	if (params.subscriber) query.set('subscriber', params.subscriber);
 
-	const response = await fetch(`${API_BASE_URL}/collections/payment_cycles/records?${query.toString()}`);
+	const response = await fetchFn(`${API_BASE_URL}/collections/payment_cycles/records?${query.toString()}`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch payment cycles');
 	}

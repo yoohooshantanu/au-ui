@@ -18,13 +18,16 @@ export interface InventorySummary {
 	remaining: number;
 }
 
-export async function getInventoryAllocations(params: {
-	center?: string;
-	fromDate?: string; // YYYY-MM-DD
-	toDate?: string; // YYYY-MM-DD
-	page?: number;
-	perPage?: number;
-}): Promise<{ items: InventoryAllocation[]; totalItems?: number; totalPages?: number }> {
+export async function getInventoryAllocations(
+	params: {
+		center?: string;
+		fromDate?: string; // YYYY-MM-DD
+		toDate?: string; // YYYY-MM-DD
+		page?: number;
+		perPage?: number;
+	},
+	customFetch?: typeof fetch
+): Promise<{ items: InventoryAllocation[]; totalItems?: number; totalPages?: number }> {
 	const query = new URLSearchParams();
 	if (params.center) query.set('filter', `center="${params.center}"`);
 	if (params.fromDate && params.toDate) {
@@ -34,7 +37,7 @@ export async function getInventoryAllocations(params: {
 	if (params.page) query.set('page', params.page.toString());
 	if (params.perPage) query.set('perPage', params.perPage.toString());
 
-	const response = await authFetch(`${API_BASE_URL}/collections/inventory_allocations/records?${query.toString()}`);
+	const response = await authFetch(`${API_BASE_URL}/collections/inventory_allocations/records?${query.toString()}`, {}, customFetch);
 	if (!response.ok) throw new Error('Failed to fetch inventory allocations');
 	return response.json();
 }

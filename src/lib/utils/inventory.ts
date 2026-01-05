@@ -6,15 +6,18 @@ import type { InventorySummary } from '$lib/api/inventory';
  * Consumption per day = active subscribers in center - missed deliveries in center.
  * Returns array of { center, date, consumed }.
  */
-export async function computeConsumptionByCenters(params: {
-	fromDate: string;
-	toDate: string;
-	centers?: string[]; // optional: limit to these centers
-}): Promise<{ center: string; date: string; consumed: number }[]> {
+export async function computeConsumptionByCenters(
+	params: {
+		fromDate: string;
+		toDate: string;
+		centers?: string[]; // optional: limit to these centers
+	},
+	customFetch?: typeof fetch
+): Promise<{ center: string; date: string; consumed: number }[]> {
 	const { fromDate, toDate, centers } = params;
 
 	// 1) Fetch all subscribers once and group by center_name
-	const allSubs = await getAllSubscribers();
+	const allSubs = await getAllSubscribers(customFetch);
 	const subsByCenter = new Map<string, number>();
 	for (const sub of allSubs) {
 		if (!sub.center_name) continue;
@@ -23,7 +26,7 @@ export async function computeConsumptionByCenters(params: {
 	}
 
 	// 2) Fetch missed deliveries for the entire date range
-	const missed = await getMissedDeliveriesInRange({ fromDate, toDate });
+	const missed = await getMissedDeliveriesInRange({ fromDate, toDate }, customFetch);
 
 	// Build a map missedCountByCenterDate for fast lookup
 	const missedCountByCenterDate = new Map<string, number>();

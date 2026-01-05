@@ -13,8 +13,8 @@ export interface PocUser {
 	updated?: string;
 }
 
-export async function getPocUsers(): Promise<PocUser[]> {
-	const response = await authFetch(`${API_BASE_URL}/collections/users/records`);
+export async function getPocUsers(customFetch?: typeof fetch): Promise<PocUser[]> {
+	const response = await authFetch(`${API_BASE_URL}/collections/users/records`, {}, customFetch);
 	if (!response.ok) throw new Error('Failed to fetch POC users');
 	const data = await response.json();
 	return data.items;

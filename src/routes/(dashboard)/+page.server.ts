@@ -1,9 +1,16 @@
 import { getDashboardStats } from '$lib/api/dashboard';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ fetch }) => {
 	try {
-		const stats = await getDashboardStats();
+		// Create a wrapper that adds the full URL for server-side requests
+		const serverFetch = (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = input instanceof URL ? input.toString() : (typeof input === 'string' ? input : input.toString());
+			const fullUrl = url.startsWith('/api') ? `http://127.0.0.1:3001${url}` : url;
+			return fetch(fullUrl, init);
+		};
+
+		const stats = await getDashboardStats(serverFetch);
 		return {
 			stats
 		};

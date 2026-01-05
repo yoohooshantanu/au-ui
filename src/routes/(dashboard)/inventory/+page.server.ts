@@ -5,7 +5,7 @@ import { computeConsumptionByCenters, computeRemainingInventory } from '$lib/uti
 import { getCurrentUser, canViewInventory } from '$lib/auth';
 import { redirect } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, fetch }) => {
 	// Temporarily removing auth check for debugging
 	console.log('Inventory page loading...');
 
@@ -16,14 +16,21 @@ export const load: PageServerLoad = async ({ url }) => {
 	console.log('Fetching inventory data...');
 
 	try {
+		// Create a wrapper that adds the full URL for server-side requests
+		const serverFetch = (input: RequestInfo | URL, init?: RequestInit) => {
+			const url = input instanceof URL ? input.toString() : (typeof input === 'string' ? input : input.toString());
+			const fullUrl = url.startsWith('/api') ? `http://127.0.0.1:3001${url}` : url;
+			return fetch(fullUrl, init);
+		};
+
 		const [allocationsResp, lookups] = await Promise.all([
-			getInventoryAllocations({ center, fromDate, toDate, perPage: 500 }),
-			getLookups().catch(() => ({ units: [], cities: [], center_names: [], landmarks: [] }))
+			getInventoryAllocations({ center, fromDate, toDate, perPage: 500 }, serverFetch),
+			getLookups(serverFetch).catch(() => ({ units: [], cities: [], center_names: [], landmarks: [] }))
 		]);
 		const allocations: InventoryAllocation[] = allocationsResp.items ?? [];
 
 		// Compute consumption for the same date range (placeholder: needs efficient aggregation)
-		const consumption = await computeConsumptionByCenters({ fromDate, toDate, centers: center ? [center] : undefined });
+		const consumption = await computeConsumptionByCenters({ fromDate, toDate, centers: center ? [center] : undefined }, serverFetch);
 
 		// Compute remaining inventory per center
 		const summaries = await computeRemainingInventory({ asOfDate: toDate, allocations, consumption });

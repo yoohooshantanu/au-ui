@@ -34,9 +34,12 @@
 
 	onMount(async () => {
 		try {
+			console.log('POC Form: Loading city centers...');
+			// Only pass fetch on server side
 			cityCenters = await getCityCenters();
+			console.log('POC Form: Loaded city centers:', cityCenters);
 		} catch (e: any) {
-			console.error('Failed to load city-centers mapping:', e);
+			console.error('POC Form: Failed to load city-centers mapping:', e);
 		}
 	});
 

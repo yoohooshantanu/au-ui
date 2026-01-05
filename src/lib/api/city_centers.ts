@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { authFetch } from '$lib/auth';
 
 export interface CityCenter {
 	id?: string;
@@ -8,8 +9,10 @@ export interface CityCenter {
 	updated?: string;
 }
 
-export async function getCityCenters(): Promise<CityCenter[]> {
-	const response = await fetch(`${API_BASE_URL}/collections/city_centers/records?perPage=200`);
+export async function getCityCenters(customFetch?: typeof fetch): Promise<CityCenter[]> {
+	// Use regular fetch for city centers as it should be public data
+	const fetchFn = customFetch || fetch;
+	const response = await fetchFn(`${API_BASE_URL}/collections/city_centers/records?perPage=200`);
 	if (!response.ok) throw new Error('Failed to fetch city-centers mapping');
 	const data = await response.json();
 	return data.items ?? [];

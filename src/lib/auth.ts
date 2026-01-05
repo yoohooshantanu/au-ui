@@ -112,14 +112,17 @@ export function getAuthHeader(): Record<string, string> {
 }
 
 // Wrapper for fetch that includes auth and handles permissions
-export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(url: string, options: RequestInit = {}, customFetch?: typeof fetch): Promise<Response> {
 	const headers = {
 		'Content-Type': 'application/json',
 		...getAuthHeader(),
 		...options.headers
 	};
 	
-	const response = await fetch(url, { ...options, headers });
+	// Use customFetch if provided (for server-side), otherwise use global fetch
+	const fetchFn = customFetch || fetch;
+	
+	const response = await fetchFn(url, { ...options, headers });
 	
 	// Handle 401/403 globally if needed
 	if (response.status === 401 || response.status === 403) {

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import type { Lookups } from '$lib/api/dashboard';
+	import { getCityCenters, type CityCenter } from '$lib/api/city_centers';
 
 	export let lookups: Lookups | null = null;
 	const dispatch = createEventDispatcher();
@@ -10,12 +11,23 @@
 	let date = '';
 	let quantity = 0;
 	let addedBy = '';
+	let allCenters: string[] = [];
 
 	// Default added_by to current user if available (placeholder)
-	onMount(() => {
+	onMount(async () => {
 		date = new Date().toISOString().split('T')[0];
 		// TODO: get current user from auth store
 		addedBy = 'admin';
+		
+		// Get all centers from city-centers mapping
+		try {
+			const cityCenters = await getCityCenters();
+			allCenters = cityCenters.flatMap(cc => cc.centers).sort();
+		} catch (e) {
+			console.error('Failed to load centers:', e);
+			// Fallback to lookups if city-centers fails
+			allCenters = lookups?.center_names ?? [];
+		}
 	});
 
 	function handleSubmit() {
@@ -35,7 +47,7 @@
 				<label for="center" class="label">Center</label>
 				<select id="center" bind:value={center} required class="input">
 					<option value="">Select Center</option>
-					{#each lookups?.center_names ?? [] as c}
+					{#each allCenters as c}
 						<option value={c}>{c}</option>
 					{/each}
 				</select>
