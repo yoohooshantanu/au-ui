@@ -79,9 +79,9 @@
 				<tr>
 					<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Subscriber</th>
 					<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Contact</th>
-					<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">
-						Center / Location
-					</th>
+					<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Address</th>
+					<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Center Details</th>
+					<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Joined</th>
 					<th class="w-24"></th><!-- Actions -->
 				</tr>
 			</thead>
@@ -91,31 +91,46 @@
 						class="cursor-pointer hover:bg-gray-50"
 						on:click={() => toggleExpand(sub.id)}
 					>
-						<td class="p-4 font-medium text-gray-800">
+						<td class="p-4 font-medium text-gray-800 align-top">
 							<div class="flex items-center gap-3">
 								<div>
-									<div>{sub.name}</div>
-									<code class="text-xs text-gray-400 font-mono">{sub.id}</code>
+									<div class="font-bold text-indigo-700">{sub.name}</div>
+									<code class="text-xs text-gray-400 font-mono bg-gray-100 px-1 rounded">{sub.id}</code>
 								</div>
 							</div>
 						</td>
 
-						<td class="p-4 text-sm text-gray-600">
-							<div>{sub.phone}</div>
+						<td class="p-4 text-sm text-gray-600 align-top">
+							<div class="font-medium">{sub.phone}</div>
 							<div class="text-xs text-gray-500">{sub.email || '-'}</div>
 						</td>
-						<td class="p-4 text-sm text-gray-600">
-							{#if sub.center_name}
-								<div>{sub.center_name}</div>
-							{/if}
+						
+						<td class="p-4 text-sm text-gray-600 align-top max-w-xs">
+							<div class="line-clamp-2" title={sub.address}>{sub.address || 'No Address'}</div>
 							{#if sub.landmark}
-								<div class="text-xs text-gray-500">{sub.landmark}</div>
+								<div class="text-xs text-indigo-500 mt-1">Nr. {sub.landmark}</div>
 							{/if}
-							<div class="text-xs text-gray-500">
-								{[sub.city, sub.unit].filter(Boolean).join(' - ')}
+							{#if sub.pincode}
+								<div class="text-xs text-gray-400">{sub.pincode}</div>
+							{/if}
+						</td>
+
+						<td class="p-4 text-sm text-gray-600 align-top">
+							{#if sub.center_name}
+								<div class="font-semibold text-gray-800">{sub.center_name}</div>
+							{:else}
+								<div class="text-gray-400 italic">No Center</div>
+							{/if}
+							<div class="text-xs text-gray-500 mt-1">
+								{[sub.city, sub.unit].filter(Boolean).join(' • ')}
 							</div>
 						</td>
-						<td class="p-4 text-right">
+
+						<td class="p-4 text-sm text-gray-500 align-top">
+							{new Date(sub.created).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+						</td>
+
+						<td class="p-4 text-right align-top">
 							<div class="flex justify-end gap-2" on:click|stopPropagation>
 								<button on:click={() => dispatch('edit', sub)} class="btn-action">Edit</button>
 								{#if canDelete}
@@ -129,24 +144,24 @@
 
 					{#if expandedSubscriberId === sub.id}
 						<tr>
-							<td colspan="4" class="p-0 bg-gray-50">
+							<td colspan="6" class="p-0 bg-gray-50">
 								<div class="p-4 border-t border-gray-200">
 									<div class="bg-white rounded-lg border border-gray-200 p-4">
 										<div class="flex flex-wrap gap-2">
 											<button
-												on:click|stopPropagation={() => goto(`/subscribers/${sub.id}/daily-track`)}
+												on:click|stopPropagation={() => goto(`/dashboard/subscribers/${sub.id}/daily-track`)}
 												class="btn-action"
 											>
 												Daily Track
 											</button>
 											<button
-												on:click|stopPropagation={() => goto(`/subscribers/${sub.id}/payment-history`)}
+												on:click|stopPropagation={() => goto(`/dashboard/subscribers/${sub.id}/payment-history`)}
 												class="btn-action"
 											>
 												Payment History
 											</button>
 											<button
-												on:click|stopPropagation={() => goto(`/subscribers/${sub.id}/payment-due`)}
+												on:click|stopPropagation={() => goto(`/dashboard/subscribers/${sub.id}/payment-due`)}
 												class="btn-action"
 											>
 												Payment Due
@@ -171,7 +186,7 @@
 					{/if}
 				{:else}
 					<tr>
-						<td colspan="4" class="p-8 text-center text-gray-500">No subscribers found.</td>
+						<td colspan="6" class="p-8 text-center text-gray-500">No subscribers found.</td>
 					</tr>
 				{/each}
 			</tbody>

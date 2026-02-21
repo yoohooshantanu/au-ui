@@ -4,6 +4,7 @@
 	import { getLookups, type Lookups } from '$lib/api/dashboard';
 	import PocList from '$lib/components/poc/PocList.svelte';
 	import PocForm from '$lib/components/poc/PocForm.svelte';
+	import { getCurrentUser } from '$lib/auth';
 
 	let users: PocUser[] = [];
 	let lookups: Lookups | null = null;

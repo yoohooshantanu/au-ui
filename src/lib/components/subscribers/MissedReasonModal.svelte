@@ -28,7 +28,7 @@
 			rows="3"
 			class="block w-full rounded-md border-gray-300 shadow-sm"
 			bind:value={reason}
-			placeholder="e.g. Subscriber not available"
+			placeholder="e.g. Reader not available"
 		></textarea>
 
 		{#if errorMessage}

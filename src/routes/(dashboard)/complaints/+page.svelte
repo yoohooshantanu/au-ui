@@ -56,7 +56,7 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
           <tr>
             <th class="px-4 py-3">Ticket ID</th>
-            <th class="px-4 py-3">Subscriber</th>
+            <th class="px-4 py-3">Reader</th>
             <th class="px-4 py-3">Issue</th>
             <th class="px-4 py-3">Date Lodged</th>
             <th class="px-4 py-3">Assigned To</th>

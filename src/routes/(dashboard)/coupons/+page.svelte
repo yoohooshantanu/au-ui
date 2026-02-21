@@ -89,7 +89,7 @@
 						{#each coupons as c (c.id)}
 							<tr>
 								<td class="td font-medium text-gray-900">{c.name}</td>
-								<td class="td text-right font-mono">₹{Number(c.amount || 0).toFixed(2)}</td>
+								<td class="td text-right font-mono">Rs. {Number(c.amount || 0).toFixed(2)}</td>
 								<td class="td text-center">{c.is_active === false ? 'No' : 'Yes'}</td>
 								<td class="td text-right">
 									<div class="flex justify-end gap-2">

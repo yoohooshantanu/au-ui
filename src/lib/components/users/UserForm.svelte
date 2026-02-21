@@ -9,17 +9,20 @@
 	let formData: Partial<User>;
 	let isLoading = false;
 	let error = '';
+    let validationErrors: Record<string, any> = {};
 
 	$: isEditing = !!user?.id;
-	$: formData = user ? { ...user } : { name: '', email: '', unit: '', password: '' };
+	$: formData = user ? { ...user } : { name: '', email: '', unit: '', password: '', passwordConfirm: '' };
 
 	async function handleSubmit() {
 		isLoading = true;
 		error = '';
+        validationErrors = {};
 		try {
 			const payload = { ...formData };
 			if (!payload.password) {
 				delete payload.password;
+				delete payload.passwordConfirm;
 			}
 			if (isEditing && user?.id) {
 				await updateUser(user.id, payload);
@@ -29,6 +32,9 @@
 			dispatch('success');
 		} catch (e: any) {
 			error = e.message;
+            if (e.data) {
+                validationErrors = e.data;
+            }
 		} finally {
 			isLoading = false;
 		}
@@ -60,9 +66,35 @@
 						required={!isEditing} class="input"
 					/>
 				</div>
+				<div>
+					<label for="passwordConfirm" class="label">Confirm Password</label>
+					<input
+						id="passwordConfirm" type="password" bind:value={formData.passwordConfirm}
+						placeholder={isEditing ? 'Leave blank to keep current' : ''}
+						required={!isEditing && !!formData.password} class="input"
+					/>
+				</div>
+				</div>
 			</div>
 			{#if error}
-				<p class="text-sm text-red-600">{error}</p>
+				<div class="rounded-md bg-red-50 p-4 mb-4">
+					<div class="flex">
+						<div class="ml-3">
+							<h3 class="text-sm font-medium text-red-800">Error: {error}</h3>
+                            {#if Object.keys(validationErrors).length > 0}
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside space-y-1">
+                                        {#each Object.entries(validationErrors) as [field, err]}
+                                            <li>
+                                                <span class="capitalize font-medium">{field}:</span> {err.message}
+                                            </li>
+                                        {/each}
+                                    </ul>
+                                </div>
+                            {/if}
+						</div>
+					</div>
+				</div>
 			{/if}
 			<div class="pt-4 flex justify-end gap-3">
 				<button type="button" on:click={() => dispatch('cancel')} class="btn-secondary">

@@ -142,7 +142,7 @@
 	<div class="flex justify-between items-center flex-wrap gap-3">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-800">Monthly Billing</h1>
-			<p class="mt-1 text-gray-500">Computed using default ₹{DEFAULT_DAILY_PRICE} + date overrides (Unit &gt; Center &gt; City).</p>
+			<p class="mt-1 text-gray-500">Computed using default Rs. {DEFAULT_DAILY_PRICE} + date overrides (Unit &gt; Center &gt; City).</p>
 		</div>
 		<div class="flex items-center gap-2">
 			<label class="text-sm text-gray-600" for="month">Month</label>
@@ -161,7 +161,7 @@
 			<table class="w-full min-w-[1100px] text-sm">
 				<thead class="bg-gray-50">
 					<tr>
-						<th class="th">Subscriber</th>
+						<th class="th">Reader</th>
 						<th class="th">Location</th>
 						<th class="th">Cycle</th>
 						<th class="th text-right">Total</th>
@@ -191,16 +191,16 @@
 									<div class="font-mono text-xs">{r.cycleStart} → {r.cycleEnd}</div>
 									<div class="text-xs text-gray-500 font-mono">{r.cycleId}</div>
 								</td>
-								<td class="td text-right font-mono">₹{r.total.toFixed(2)}</td>
-								<td class="td text-right font-mono">₹{r.coupon.toFixed(2)}</td>
-								<td class="td text-right font-mono font-semibold">₹{r.payable.toFixed(2)}</td>
+								<td class="td text-right font-mono">Rs. {r.total.toFixed(2)}</td>
+								<td class="td text-right font-mono">Rs. {r.coupon.toFixed(2)}</td>
+								<td class="td text-right font-mono font-semibold">Rs. {r.payable.toFixed(2)}</td>
 							</tr>
 						{/each}
 						<tr class="bg-gray-50">
 							<td class="td font-semibold" colspan="3">Totals</td>
-							<td class="td text-right font-mono font-semibold">₹{totals.total.toFixed(2)}</td>
-							<td class="td text-right font-mono font-semibold">₹{totals.coupon.toFixed(2)}</td>
-							<td class="td text-right font-mono font-semibold">₹{totals.payable.toFixed(2)}</td>
+							<td class="td text-right font-mono font-semibold">Rs. {totals.total.toFixed(2)}</td>
+							<td class="td text-right font-mono font-semibold">Rs. {totals.coupon.toFixed(2)}</td>
+							<td class="td text-right font-mono font-semibold">Rs. {totals.payable.toFixed(2)}</td>
 						</tr>
 					{/if}
 				</tbody>

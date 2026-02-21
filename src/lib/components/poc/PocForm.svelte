@@ -1,56 +1,78 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import type { PocUser } from '$lib/api/poc';
 	import { createPocUser, updatePocUser } from '$lib/api/poc';
-	import { getCityCenters, type CityCenter } from '$lib/api/city_centers';
 	import type { Lookups } from '$lib/api/dashboard';
 
 	export let user: PocUser | null = null;
 	export let lookups: Lookups | null = null;
 	const dispatch = createEventDispatcher();
 
-	let formData: Partial<PocUser>;
+	let name = '';
+	let email = '';
+	let unit = '';
+	let city = '';
+	let centers: string[] = [];
+	let password = '';
+	let passwordConfirm = '';
 	let isLoading = false;
 	let error = '';
-	let cityCenters: CityCenter[] = [];
+    let validationErrors: Record<string, any> = {};
 
 	$: isEditing = !!user?.id;
-	$: formData = user
-		? { ...user }
-		: { name: '', email: '', unit: '', city: '', centers: [], password: '' };
+
+	// Initialize form data when user changes
+	$: if (user) {
+		name = user.name || '';
+		email = user.email || '';
+		unit = user.unit || '';
+		city = user.city || '';
+		centers = Array.isArray(user.centers) ? [...user.centers] : [];
+		password = '';
+		passwordConfirm = '';
+	} else {
+		name = '';
+		email = '';
+		unit = '';
+		city = '';
+		centers = [];
+		password = '';
+		passwordConfirm = '';
+	}
 
 	// When city changes, reset centers selection
 	function handleCityChange() {
-		formData.centers = [];
+		centers = [];
 	}
 
-	// Get centers for selected city using the mapping
+	// Get centers for selected city - using lookups instead of city_centers API
 	function centersForSelectedCity(): string[] {
-		if (!formData.city) return [];
-		const city = cityCenters.find(c => c.city === formData.city);
-		return city ? city.centers : [];
+		if (!city || !lookups?.center_names) return [];
+		// For now, return all centers since we don't have city-center mapping in lookups
+		// In the future, this should be filtered by city
+		return lookups.center_names;
 	}
-
-	onMount(async () => {
-		try {
-			console.log('POC Form: Loading city centers...');
-			// Only pass fetch on server side
-			cityCenters = await getCityCenters();
-			console.log('POC Form: Loaded city centers:', cityCenters);
-		} catch (e: any) {
-			console.error('POC Form: Failed to load city-centers mapping:', e);
-		}
-	});
 
 	async function handleSubmit() {
 		isLoading = true;
 		error = '';
+        validationErrors = {};
 		try {
-			const payload = { ...formData };
+			const payload = {
+				name,
+				email,
+				unit,
+				city,
+				centers,
+				password: password || undefined,
+				passwordConfirm: passwordConfirm || undefined
+			};
+			
 			if (!payload.password) {
 				delete payload.password;
+				delete payload.passwordConfirm;
 			}
+			
 			if (isEditing && user?.id) {
 				await updatePocUser(user.id, payload);
 			} else {
@@ -59,8 +81,19 @@
 			dispatch('success');
 		} catch (e: any) {
 			error = e.message;
+            if (e.data) {
+                validationErrors = e.data;
+            }
 		} finally {
 			isLoading = false;
+		}
+	}
+	// Toggle center selection manually to avoid bind:group issues
+	function toggleCenter(center: string, isChecked: boolean) {
+		if (isChecked) {
+			centers = [...centers, center];
+		} else {
+			centers = centers.filter(c => c !== center);
 		}
 	}
 </script>
@@ -72,34 +105,61 @@
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 				<div>
 					<label for="name" class="label">Name</label>
-					<input id="name" type="text" bind:value={formData.name} required class="input" />
+					<input id="name" type="text" bind:value={name} required class="input" />
 				</div>
 				<div>
 					<label for="email" class="label">Email</label>
-					<input id="email" type="email" bind:value={formData.email} required class="input" />
+					<input id="email" type="email" bind:value={email} required class="input" />
 				</div>
 				<div>
 					<label for="unit" class="label">Unit</label>
-					<input id="unit" type="text" bind:value={formData.unit} required class="input" />
+					<select id="unit" bind:value={unit} required class="input">
+						<option value="">Select Unit</option>
+						{#if lookups?.units}
+							{#each lookups.units as unit}
+								<option value={unit}>{unit}</option>
+							{/each}
+						{/if}
+					</select>
 				</div>
 				<div>
 					<label for="city" class="label">City</label>
-					<select id="city" bind:value={formData.city} on:change={handleCityChange} class="input">
+					<select id="city" bind:value={city} on:change={handleCityChange} class="input">
 						<option value="">Select City</option>
-						{#each cityCenters as cc}
-							<option value={cc.city}>{cc.city}</option>
-						{/each}
+						{#if lookups?.cities}
+							{#each lookups.cities as city}
+								<option value={city}>{city}</option>
+							{/each}
+						{/if}
 					</select>
 				</div>
 				<div class="md:col-span-2">
 					<label class="label">Centers</label>
+					{#if !lookups?.center_names}
+						<p class="text-sm text-red-500">No centers available in lookups</p>
+					{:else if !city}
+						<p class="text-sm text-gray-500">Please select a city first</p>
+					{:else}
+						<p class="text-xs text-gray-400 mb-2">Available centers: {centersForSelectedCity().length}</p>
+						<p class="text-xs text-gray-400 mb-2">Selected centers: {centers.length}</p>
+					{/if}
+	// Toggle center selection manually to avoid bind:group issues
+	function toggleCenter(center: string, isChecked: boolean) {
+		if (isChecked) {
+			centers = [...centers, center];
+		} else {
+			centers = centers.filter(c => c !== center);
+		}
+	}
+	</script>
+    <!-- ... inside template ... -->
 					<div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
 						{#each centersForSelectedCity() as center}
 							<label class="flex items-center space-x-2 text-sm">
 								<input
 									type="checkbox"
-									bind:group={formData.centers}
-									value={center}
+									checked={centers.includes(center)}
+									on:change={(e) => toggleCenter(center, e.currentTarget.checked)}
 									class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
 								/>
 								<span>{center}</span>
@@ -112,15 +172,43 @@
 					<input
 						id="password"
 						type="password"
-						bind:value={formData.password}
+						bind:value={password}
 						placeholder={isEditing ? 'Leave blank to keep current' : ''}
 						required={!isEditing}
 						class="input"
 					/>
 				</div>
+				<div>
+					<label for="passwordConfirm" class="label">Confirm Password</label>
+					<input
+						id="passwordConfirm"
+						type="password"
+						bind:value={passwordConfirm}
+						placeholder={isEditing ? 'Leave blank to keep current' : ''}
+						required={!isEditing && !!password}
+						class="input"
+					/>
+				</div>
 			</div>
 			{#if error}
-				<p class="text-sm text-red-600">{error}</p>
+				<div class="rounded-md bg-red-50 p-4 mb-4">
+					<div class="flex">
+						<div class="ml-3">
+							<h3 class="text-sm font-medium text-red-800">Error: {error}</h3>
+                            {#if Object.keys(validationErrors).length > 0}
+                                <div class="mt-2 text-sm text-red-700">
+                                    <ul class="list-disc list-inside space-y-1">
+                                        {#each Object.entries(validationErrors) as [field, err]}
+                                            <li>
+                                                <span class="capitalize font-medium">{field}:</span> {err.message}
+                                            </li>
+                                        {/each}
+                                    </ul>
+                                </div>
+                            {/if}
+						</div>
+					</div>
+				</div>
 			{/if}
 			<div class="pt-4 flex justify-end gap-3">
 				<button type="button" on:click={() => dispatch('cancel')} class="btn-secondary">

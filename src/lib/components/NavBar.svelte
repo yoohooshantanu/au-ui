@@ -7,18 +7,18 @@
   // The 'icon' property has been completely removed.
   // "Manage Users" is now in the main navigation list.
   const navItems = [
-    { href: "/", label: "Dashboard" },
-    { href: "/subscribers", label: "Subscribers" },
-    { href: "/payments", label: "Payments" },
-    { href: "/coupons", label: "Coupons" },
-    { href: "/pricing", label: "Pricing" },
-    { href: "/users", label: "AU_POC" },
-    { href: "/reports", label: "Reports" },
-    { href: "/complaints", label: "Complaints" },
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/dashboard/subscribers", label: "Readers" },
+    { href: "/dashboard/payments", label: "Payments" },
+    { href: "/dashboard/coupons", label: "Coupons" },
+    { href: "/dashboard/pricing", label: "Pricing" },
+    { href: "/dashboard/users", label: "AU_POC" },
+    { href: "/dashboard/reports", label: "Reports" },
+    { href: "/dashboard/complaints", label: "Complaints" },
   ];
 
   const isActive = (href: string) => {
-    if (href === "/") return currentPath === "/";
+    if (href === "/dashboard") return currentPath === "/dashboard";
     return currentPath.startsWith(href);
   };
 </script>
@@ -44,7 +44,7 @@
 
 <!-- Logo / Header -->
 <div class="h-16 flex items-center px-6 shadow-md bg-[#101828]">
-  <a href="/" class="flex items-center">
+  <a href="/dashboard" class="flex items-center">
     <img 
       src="https://2.bp.blogspot.com/-91e2PSMrZjE/TvSUGtNlGDI/AAAAAAAAD6U/iA-rHM7NIx8/s400/amar-ujala-logo.gif" 
       alt="Amar Ujala Logo" 

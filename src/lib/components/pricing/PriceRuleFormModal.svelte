@@ -84,7 +84,7 @@
 					</select>
 				</div>
 				<div>
-					<label for="price" class="block text-sm font-medium text-gray-700 mb-1">Daily Price (₹)</label>
+					<label for="price" class="block text-sm font-medium text-gray-700 mb-1">Daily Price (Rs.)</label>
 					<input id="price" type="number" min="0" class="block w-full rounded-md border-gray-300 shadow-sm" bind:value={price} />
 				</div>
 			</div>

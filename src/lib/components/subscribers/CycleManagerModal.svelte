@@ -61,11 +61,11 @@
 					<input type="date" id="end_date" class="input" bind:value={formData.end_date} />
 				</div>
 				<div>
-					<label for="amount" class="label">Amount (₹)</label>
+					<label for="amount" class="label">Amount (Rs.)</label>
 					<input type="number" id="amount" class="input" bind:value={formData.amount} required />
 				</div>
 				<div>
-					<label for="coupon_amount" class="label">Coupon Amount (₹)</label>
+					<label for="coupon_amount" class="label">Coupon Amount (Rs.)</label>
 					<input type="number" id="coupon_amount" class="input" bind:value={formData.coupon_amount} min="0" />
 				</div>
 				<div>
@@ -98,7 +98,7 @@
 			<!-- Preview final amount after coupon -->
 			<div>
 				<label class="label">Final Amount</label>
-				<div class="text-lg font-mono">₹{(Number(formData.amount || 0) - Number(formData.coupon_amount || 0)).toFixed(2)}</div>
+				<div class="text-lg font-mono">Rs. {(Number(formData.amount || 0) - Number(formData.coupon_amount || 0)).toFixed(2)}</div>
 			</div>
 
 			{#if errorMessage}

@@ -152,13 +152,13 @@
                 </div>
               </td>
               <td class="td text-center font-mono text-gray-800"> 
-                <div>₹{cycle.amount}</div>
+                <div>Rs. {cycle.amount}</div>
                 {#if cycle.coupon_amount}
-                  <div class="text-xs text-gray-500">Coupon: -₹{cycle.coupon_amount}</div>
+                  <div class="text-xs text-gray-500">Coupon: -Rs. {cycle.coupon_amount}</div>
                 {/if}
               </td>
               <td class="td text-center font-mono text-gray-800">
-                ₹{(Number(cycle.amount || 0) - Number(cycle.coupon_amount || 0)).toFixed(2)}
+                Rs. {(Number(cycle.amount || 0) - Number(cycle.coupon_amount || 0)).toFixed(2)}
               </td>
               <td class="td text-center">
                 <!-- ======== DIRECT ACTION BUTTONS ======== -->

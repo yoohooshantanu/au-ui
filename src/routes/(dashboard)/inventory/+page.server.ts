@@ -4,6 +4,7 @@ import { getLookups } from '$lib/api/dashboard';
 import { computeConsumptionByCenters, computeRemainingInventory } from '$lib/utils/inventory';
 import { getCurrentUser, canViewInventory } from '$lib/auth';
 import { redirect } from '@sveltejs/kit';
+import { createServerFetch } from '$lib/api/server';
 
 export const load: PageServerLoad = async ({ url, fetch }) => {
 	// Temporarily removing auth check for debugging
@@ -16,13 +17,7 @@ export const load: PageServerLoad = async ({ url, fetch }) => {
 	console.log('Fetching inventory data...');
 
 	try {
-		// Create a wrapper that adds the full URL for server-side requests
-		const serverFetch = (input: RequestInfo | URL, init?: RequestInit) => {
-			const url = input instanceof URL ? input.toString() : (typeof input === 'string' ? input : input.toString());
-			const fullUrl = url.startsWith('/api') ? `http://10.59.51.124:8090${url}` : url;
-			return fetch(fullUrl, init);
-		};
-
+		const serverFetch = createServerFetch(url.origin);
 		const [allocationsResp, lookups] = await Promise.all([
 			getInventoryAllocations({ center, fromDate, toDate, perPage: 500 }, serverFetch),
 			getLookups(serverFetch).catch(() => ({ units: [], cities: [], center_names: [], landmarks: [] }))

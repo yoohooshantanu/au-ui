@@ -62,7 +62,7 @@
 			>
 				<option value="__custom__">Custom</option>
 				{#each coupons as c (c.id)}
-					<option value={c.id}>{c.name} (₹{Number(c.amount || 0)})</option>
+					<option value={c.id}>{c.name} (Rs. {Number(c.amount || 0)})</option>
 				{/each}
 			</select>
 			{#if loadError}
@@ -72,7 +72,7 @@
 		</div>
 
 		<div class="mb-4">
-			<label for="coupon" class="block text-sm font-medium text-gray-700 mb-1">Coupon Amount (₹)</label>
+			<label for="coupon" class="block text-sm font-medium text-gray-700 mb-1">Coupon Amount (Rs.)</label>
 			<input
 				type="number"
 				id="coupon"

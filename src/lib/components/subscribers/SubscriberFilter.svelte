@@ -1,4 +1,3 @@
-
 <script lang="ts">
 	import type { Lookups } from '$lib/api/dashboard';
 	import { goto } from '$app/navigation';
@@ -20,6 +19,23 @@
 	// Client-side validation for pincode
 	$: isPincodeValid = /^\d{6}$/.test(pincode) || pincode === '';
 
+	// Create a mapping of cities to their centers
+	$: cityCenters = {};
+	if (lookups?.cities && lookups?.center_names) {
+		// This would ideally come from the API, but for now we'll need to derive it
+		// Since we don't have the city-center mapping, we'll show all centers when no city is selected
+		// and filter when we implement the API endpoint
+		cityCenters = {};
+	}
+
+	// Filter centers based on selected city
+	$: availableCenters = city ? lookups?.center_names || [] : lookups?.center_names || [];
+
+	// Reset center when city changes
+	$: if (city && center_name && !availableCenters.includes(center_name)) {
+		center_name = '';
+	}
+
 	function applyFilters() {
 		if (!isPincodeValid) {
 			alert('Please enter a valid 6-digit pincode.');
@@ -37,7 +53,7 @@
 		if (has_due_payment) query.set('has_due_payment', 'true');
 		query.set('page', '1');
 
-		goto(`/subscribers?${query.toString()}`, { keepFocus: true, noScroll: true });
+		goto(`/dashboard/subscribers?${query.toString()}`, { keepFocus: true, noScroll: true });
 	}
 
 	function resetFilters() {
@@ -50,7 +66,7 @@
 		landmark = '';
 		// --- END NEW ---
 		has_due_payment = false;
-		goto('/subscribers', { keepFocus: true, noScroll: true });
+		goto('/dashboard/subscribers', { keepFocus: true, noScroll: true });
 	}
 </script>
 
@@ -100,10 +116,10 @@
 			<!-- --- NEW: Center Name Dropdown --- -->
 			<div>
 				<label for="center_name" class="label">Center Name</label>
-				<select id="center_name" bind:value={center_name} class="input">
-					<option value="">All Centers</option>
-					{#if lookups?.center_names}
-						{#each lookups.center_names as c}
+				<select id="center_name" bind:value={center_name} class="input" disabled={!city}>
+					<option value="">{city ? 'Select a center' : 'Select a city first'}</option>
+					{#if availableCenters}
+						{#each availableCenters as c}
 							<option value={c}>{c}</option>
 						{/each}
 					{/if}

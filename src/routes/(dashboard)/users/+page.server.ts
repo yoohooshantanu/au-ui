@@ -1,22 +1,17 @@
 import type { PageServerLoad } from './$types';
-import { getLookups } from '$lib/api/dashboard';
 import { getPocUsers, type PocUser } from '$lib/api/poc';
+import { getLookups } from '$lib/api/dashboard';
 import { getCurrentUser, isAdmin } from '$lib/auth';
 import { redirect } from '@sveltejs/kit';
+import { createServerFetch } from '$lib/api/server';
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch, url }) => {
 	// Temporarily removing auth check for debugging
 	console.log('AU POC page loading...');
 	console.log('Fetching POC data...');
 
 	try {
-		// Create a wrapper that adds the full URL for server-side requests
-		const serverFetch = (input: RequestInfo | URL, init?: RequestInit) => {
-			const url = input instanceof URL ? input.toString() : (typeof input === 'string' ? input : input.toString());
-			const fullUrl = url.startsWith('/api') ? `http://10.59.51.124:8090${url}` : url;
-			return fetch(fullUrl, init);
-		};
-
+		const serverFetch = createServerFetch(url.origin);
 		const [users, lookups] = await Promise.all([
 			getPocUsers(serverFetch),
 			getLookups(serverFetch).catch(() => ({ units: [], cities: [], center_names: [], landmarks: [] }))

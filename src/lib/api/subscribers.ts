@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './config';
+import { authFetch } from '$lib/auth';
 import type { PaymentCycle } from './payment_cycles'; // Assuming this type exists
 
 // --- UPDATED ---
@@ -42,7 +43,8 @@ export async function getSubscribers(
 ): Promise<PaginatedSubscribers> {
 	const query = new URLSearchParams();
 	const filters: string[] = [];
-	const fetchFn = customFetch || fetch;
+
+	const fetchFn = customFetch || authFetch;
 
 	function quote(value: string) {
 		return `'${value.replace(/'/g, "\\'")}'`;
@@ -54,18 +56,24 @@ export async function getSubscribers(
 		const term = quote(params.search);
 		filters.push(`(name ~ ${term} || phone ~ ${term} || center_name ~ ${term} || landmark ~ ${term})`);
 	}
-	if (params.city) filters.push(`city = ${quote(params.city)}`);
-	if (params.unit) filters.push(`unit = ${quote(params.unit)}`);
+	// Explicitly check for truthy values to avoid undefined
+	if (params.city && params.city !== 'ALL') filters.push(`city = ${quote(params.city)}`);
+	if (params.unit && params.unit !== 'ALL') filters.push(`unit = ${quote(params.unit)}`);
 	if (params.pincode) filters.push(`pincode = ${quote(params.pincode)}`);
 	if (params.center_name) filters.push(`center_name = ${quote(params.center_name)}`);
 	if (params.landmark) filters.push(`landmark = ${quote(params.landmark)}`);
-	if (params.subscriberIds?.length) {
+
+	// Handle subscriberIds array safely
+	if (params.subscriberIds && params.subscriberIds.length > 0) {
 		const subset = params.subscriberIds.map((id) => `id = ${quote(id)}`).join(' || ');
 		filters.push(`(${subset})`);
 	}
 
 	if (filters.length > 0) query.set('filter', filters.join(' && '));
+	query.set('sort', '-created'); // Force deterministic sort order (newest first)
 	query.set('perPage', '25');
+
+
 
 	const response = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?${query.toString()}`);
 

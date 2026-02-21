@@ -1,7 +1,7 @@
 <script lang="ts">
   const fakeGeneratedReports = [
     { name: "Monthly Revenue - June 2025", date: "2025-07-01", by: "Admin" },
-    { name: "Subscriber Growth Q2 2025", date: "2025-07-01", by: "Admin" },
+    { name: "Reader Growth Q2 2025", date: "2025-07-01", by: "Admin" },
     { name: "Plan Distribution Analysis", date: "2025-06-15", by: "Admin" },
     {
       name: "Complaint Resolution Times - May 2025",
@@ -21,7 +21,7 @@
     <h3 class="text-lg font-semibold text-gray-800 mb-2">Quick Reports</h3>
     <p class="text-sm text-gray-500 mb-4">Open pre-built reports.</p>
     <a
-      href="/reports/monthly-billing"
+      href="/dashboard/reports/monthly-billing"
       class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
     >
       Monthly Billing
@@ -44,7 +44,7 @@
         >
           <option disabled selected>Choose a report...</option>
           <option>Monthly Revenue</option>
-          <option>Subscriber Growth</option>
+          <option>Reader Growth</option>
           <option>Plan Distribution Analysis</option>
           <option>Complaint Resolution Times</option>
         </select>

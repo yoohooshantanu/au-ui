@@ -68,10 +68,10 @@
 	<div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
 		<h3 class="font-bold text-lg mb-4">Send Payment Link</h3>
 		<p class="text-sm text-gray-600 mb-4">
-			You can adjust the amount before sending a new payment link to the subscriber.
+			You can adjust the amount before sending a new payment link to the reader.
 		</p>
 		<div class="mb-4">
-			<label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Payment Amount (₹)</label>
+			<label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Payment Amount (Rs.)</label>
 			<input type="number" id="amount" class="block w-full rounded-md border-gray-300 shadow-sm" bind:value={amount} />
 			{#if pricingError}
 				<p class="text-xs text-gray-500 mt-1">{pricingError}. Using stored amount.</p>

@@ -30,13 +30,13 @@
 			query.delete('month');
 		}
 		query.set('page', '1'); // Reset to page 1 on filter change
-		goto(`/payments?${query.toString()}`, { keepFocus: true, noScroll: true });
+		goto(`/dashboard/payments?${query.toString()}`, { keepFocus: true, noScroll: true });
 	}
 
 	function resetFilters() {
 		filters.is_due = null;
 		filters.month = '';
-		goto('/payments', { keepFocus: true, noScroll: true });
+		goto('/dashboard/payments', { keepFocus: true, noScroll: true });
 	}
 
 	async function loadData() {
@@ -72,14 +72,14 @@
 	function handlePageChange(event: CustomEvent<number>) {
 		const query = new URLSearchParams($page.url.searchParams);
 		query.set('page', event.detail.toString());
-		goto(`/payments?${query.toString()}`);
+		goto(`/dashboard/payments?${query.toString()}`);
 	}
 </script>
 
 <div>
 	<div class="mb-6">
 		<h1 class="text-3xl font-bold text-gray-900">All Payment Cycles</h1>
-		<p class="text-gray-600 mt-1">View and manage all billing records across subscribers.</p>
+		<p class="text-gray-600 mt-1">View and manage all billing records across readers.</p>
 	</div>
 
 	<!-- Filter Bar -->
@@ -126,7 +126,7 @@
 			<table class="w-full min-w-[800px]">
 				<thead class="bg-gray-50">
 					<tr>
-						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Subscriber</th>
+						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Reader</th>
 						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
 						<th class="p-4 text-right text-xs font-semibold text-gray-500 uppercase">Amount</th>
 						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Billing Period</th>
@@ -162,7 +162,7 @@
 										</span>
 									{/if}
 								</td>
-								<td class="p-4 font-mono text-gray-800 text-right">₹{cycle.amount}</td>
+								<td class="p-4 font-mono text-gray-800 text-right">Rs. {cycle.amount}</td>
 								<td class="p-4 text-sm text-gray-600">
 									{formatDate(cycle.start_date)} - {formatDate(cycle.end_date)}
 								</td>

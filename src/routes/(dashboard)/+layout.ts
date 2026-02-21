@@ -5,6 +5,6 @@ import { get } from 'svelte/store';
 
 export const load = () => {
     if (browser && !get(isLoggedIn)) {
-        goto('/login');
+        goto('/dashboard/login');
     }
 };

@@ -311,7 +311,7 @@
 			<h1 class="text-3xl font-bold text-gray-900">Daily Track</h1>
 			{#if subscriber}
 				<p class="text-gray-600 mt-1">
-					Subscriber: <span class="font-semibold text-gray-900">{subscriber.name}</span>
+					Reader: <span class="font-semibold text-gray-900">{subscriber.name}</span>
 				</p>
 			{/if}
 		</div>
@@ -387,9 +387,9 @@
 										<div class="day-number">{d.getDate()}</div>
 										<div class="day-mark">
 											{#if missed}
-												❌
+												<span class="text-[10px] font-bold">Missed</span>
 											{:else if showDelivered}
-												✔
+												<span class="text-[10px] font-bold text-green-600">Done</span>
 											{/if}
 										</div>
 									</div>
@@ -417,14 +417,14 @@
 					</div>
 					<div class="flex justify-between">
 						<span class="text-gray-600">Daily price</span>
-						<span class="font-mono text-gray-900">₹{dailyPrice.toFixed(2)}</span>
+						<span class="font-mono text-gray-900">Rs. {dailyPrice.toFixed(2)}</span>
 					</div>
 					{#if pricingError}
 						<div class="text-xs text-gray-500">{pricingError}. Using default pricing.</div>
 					{/if}
 					<div class="flex justify-between border-t border-gray-200 pt-2">
 						<span class="text-gray-600">Total deduction</span>
-						<span class="font-mono font-semibold text-gray-900">₹{totalDeduction.toFixed(2)}</span>
+						<span class="font-mono font-semibold text-gray-900">Rs. {totalDeduction.toFixed(2)}</span>
 					</div>
 				</div>
 			</div>

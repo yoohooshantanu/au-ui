@@ -117,7 +117,7 @@
 <div class="space-y-4">
   <div>
     <h1 class="text-3xl font-bold text-gray-900">Payment Due</h1>
-    <p class="text-gray-600 mt-1">Subscriber: <code class="text-xs text-gray-500">{subscriberId}</code></p>
+    <p class="text-gray-600 mt-1">Reader: <code class="text-xs text-gray-500">{subscriberId}</code></p>
   </div>
 
   <div class="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -146,9 +146,9 @@
                   <div class="font-medium text-gray-800">{formatDate(cycle.start_date)}</div>
                   <div class="text-xs text-gray-500">to {formatDate(cycle.end_date)}</div>
                 </td>
-                <td class="td text-right font-mono">₹{computedTotal(cycle).toFixed(2)}</td>
-                <td class="td text-right font-mono">₹{Number(cycle.coupon_amount || 0).toFixed(2)}</td>
-                <td class="td text-right font-mono">₹{(computedTotal(cycle) - Number(cycle.coupon_amount || 0)).toFixed(2)}</td>
+                <td class="td text-right font-mono">Rs. {computedTotal(cycle).toFixed(2)}</td>
+                <td class="td text-right font-mono">Rs. {Number(cycle.coupon_amount || 0).toFixed(2)}</td>
+                <td class="td text-right font-mono">Rs. {(computedTotal(cycle) - Number(cycle.coupon_amount || 0)).toFixed(2)}</td>
                 <td class="td text-right">
                   <div class="flex justify-end gap-2 flex-wrap">
                     <button class="btn-action" on:click={() => handlePaymentLink(cycle)}>Payment Link</button>

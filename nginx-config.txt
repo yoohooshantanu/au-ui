@@ -1,0 +1,23 @@
+# -------------------------
+# NEW DASHBOARD (SvelteKit)
+# -------------------------
+location = /dashboard {
+    return 301 /dashboard/;
+}
+
+location /dashboard/ {
+    # Pass the full path to SvelteKit, don't rewrite it
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # Important: Pass the original request path
+    proxy_set_header X-Forwarded-Path $request_uri;
+    
+    proxy_read_timeout 60;
+    proxy_send_timeout 60;
+}

@@ -37,7 +37,7 @@
 				<input id="name" class="block w-full rounded-md border-gray-300 shadow-sm" bind:value={name} />
 			</div>
 			<div>
-				<label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (₹)</label>
+				<label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.)</label>
 				<input
 					id="amount"
 					type="number"

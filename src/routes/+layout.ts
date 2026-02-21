@@ -12,12 +12,12 @@ export const load: LayoutLoad = ({ url }) => {
 	const isLoggedIn = get(user) !== null;
 	const { pathname } = url;
 
-	if (isLoggedIn && pathname === '/login') {
-		throw redirect(307, '/');
+	if (isLoggedIn && pathname === '/dashboard/login') {
+		throw redirect(307, '/dashboard');
 	}
 
-	if (!isLoggedIn && pathname !== '/login') {
-		throw redirect(307, '/login');
+	if (!isLoggedIn && pathname !== '/dashboard/login') {
+		throw redirect(307, '/dashboard/login');
 	}
 
 	return {};

@@ -80,7 +80,7 @@
 	<div class="flex justify-between items-center">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Pricing Rules</h1>
-			<p class="text-gray-600 mt-1">Default daily price: <span class="font-mono">₹{DEFAULT_DAILY_PRICE}</span>. Add single-date overrides by Unit / Center / City, or set a new Default price effective from a future date.</p>
+			<p class="text-gray-600 mt-1">Default daily price: <span class="font-mono">Rs. {DEFAULT_DAILY_PRICE}</span>. Add single-date overrides by Unit / Center / City, or set a new Default price effective from a future date.</p>
 		</div>
 		<button on:click={handleAdd} class="btn-primary">Add Rule</button>
 	</div>
@@ -124,7 +124,7 @@
 								<td class="td font-mono">{r.date}</td>
 								<td class="td">{r.scope_type}</td>
 								<td class="td">{r.scope_value}</td>
-								<td class="td text-right font-mono">₹{Number(r.price || 0).toFixed(2)}</td>
+								<td class="td text-right font-mono">Rs. {Number(r.price || 0).toFixed(2)}</td>
 								<td class="td text-center">{r.is_active === false ? 'No' : 'Yes'}</td>
 								<td class="td text-right">
 									<div class="flex justify-end gap-2">

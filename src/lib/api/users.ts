@@ -6,6 +6,7 @@ export interface User {
 	email: string;
 	unit: string;
 	password?: string;
+	passwordConfirm?: string;
 }
 
 export const getUsers = async (): Promise<User[]> => {
@@ -24,9 +25,18 @@ export const createUser = async (userData: Partial<User>): Promise<User> => {
 		body: JSON.stringify(userData)
 	});
 	if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create user');
-    }
+		const errorData = await response.json().catch(() => ({}));
+
+		let errorMessage = errorData.message || 'Failed to create user';
+		const error = new Error(errorMessage) as any;
+
+		// Attach the validation data to the error object so UI can use it
+		if (errorData.data && Object.keys(errorData.data).length > 0) {
+			error.data = errorData.data;
+		}
+
+		throw error;
+	}
 	return response.json();
 };
 
@@ -37,9 +47,9 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
 		body: JSON.stringify(userData)
 	});
 	if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update user');
-    }
+		const errorData = await response.json();
+		throw new Error(errorData.message || 'Failed to update user');
+	}
 	return response.json();
 };
 

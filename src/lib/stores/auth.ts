@@ -9,7 +9,8 @@ export interface User {
 	name: string;
 	email: string;
 	unit: string;
-    initial?: string; // We can add this on the client
+	city?: string;
+	initial?: string; // We can add this on the client
 }
 
 // --- Helper function to get initial state from localStorage ---
@@ -43,7 +44,7 @@ export async function login(email: string, password: string) {
 		const response = await fetch(`${API_BASE_URL}/collections/users/auth-with-password`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ identity:email, password })
+			body: JSON.stringify({ identity: email, password })
 		});
 
 		const data = await response.json();
@@ -56,8 +57,8 @@ export async function login(email: string, password: string) {
 		// On successful login, PocketBase returns a token and record object.
 		const { token, record: userData } = data;
 
-        // Add the 'initial' property for the UI avatar
-        userData.initial = userData.name?.charAt(0).toUpperCase() || 'U';
+		// Add the 'initial' property for the UI avatar
+		userData.initial = userData.name?.charAt(0).toUpperCase() || 'U';
 
 		// Store user data and token for session persistence
 		if (browser) {
@@ -69,7 +70,7 @@ export async function login(email: string, password: string) {
 		user.set(userData);
 
 		// Redirect to the dashboard
-		await goto('/');
+		await goto('/dashboard');
 
 	} catch (error) {
 		// Clean up on failure to be safe
@@ -97,5 +98,5 @@ export function logout() {
 	}
 
 	// Redirect to the login page
-	goto('/login');
+	goto('/dashboard/login');
 }
