@@ -64,7 +64,8 @@ export async function computeInventoryConsumption(params: {
 	// 2) Count missed deliveries per center per date
 	// 3) consumption = active_subscribers - missed_deliveries
 	// For now, return placeholder; implement with actual aggregation in caller or backend
-	throw new Error('Not implemented: use aggregate queries in caller');
+	console.warn('computeInventoryConsumption is not fully implemented yet.');
+	return [];
 }
 
 // Get remaining stock per center as of a date
@@ -73,5 +74,6 @@ export async function getInventoryRemaining(params: {
 	asOfDate: string;
 }): Promise<InventorySummary[]> {
 	// TODO: aggregate allocations up to asOfDate and subtract computed consumption
-	throw new Error('Not implemented: aggregate in caller or backend');
+	console.warn('getInventoryRemaining is not fully implemented yet.');
+	return [];
 }

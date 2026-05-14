@@ -1,21 +1,25 @@
 <script lang="ts">
   import { logout, user } from "$lib/stores/auth";
+  import { isAdmin as checkIsAdmin, getCurrentUser } from "$lib/auth";
 
   export let isMobileNavOpen = false;
   export let currentPath: string;
 
   // The 'icon' property has been completely removed.
   // "Manage Users" is now in the main navigation list.
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard" },
-    { href: "/dashboard/subscribers", label: "Readers" },
-    { href: "/dashboard/payments", label: "Payments" },
-    { href: "/dashboard/coupons", label: "Coupons" },
-    { href: "/dashboard/pricing", label: "Pricing" },
-    { href: "/dashboard/users", label: "AU_POC" },
-    { href: "/dashboard/reports", label: "Reports" },
-    { href: "/dashboard/complaints", label: "Complaints" },
+  const allNavItems = [
+    { href: "/dashboard", label: "Dashboard", adminOnly: false },
+    { href: "/dashboard/subscribers", label: "Readers", adminOnly: false },
+    { href: "/dashboard/payments", label: "Payments", adminOnly: false },
+    { href: "/dashboard/coupons", label: "Coupons", adminOnly: true },
+    { href: "/dashboard/pricing", label: "Pricing", adminOnly: true },
+    { href: "/dashboard/users", label: "AU_POC", adminOnly: true },
+    { href: "/dashboard/reports", label: "Reports", adminOnly: false },
+    { href: "/dashboard/complaints", label: "Complaints", adminOnly: false },
   ];
+
+  $: userIsAdmin = checkIsAdmin();
+  $: navItems = allNavItems.filter(item => !item.adminOnly || userIsAdmin);
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return currentPath === "/dashboard";

@@ -2,13 +2,19 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import type { Subscriber } from '$lib/api/subscribers';
 	import { createSubscriber, updateSubscriber } from '$lib/api/subscribers';
+	import { isAdmin } from '$lib/auth';
 
 	export let subscriber: Subscriber | null = null;
 	const dispatch = createEventDispatcher();
 
 	// No changes needed here. `Partial<Subscriber>` is flexible enough
 	// to automatically include the new fields.
-	let formData: Partial<Subscriber> = subscriber ? { ...subscriber } : {};
+	let formData: Partial<Subscriber> = subscriber 
+		? { 
+				...subscriber,
+				start_date: subscriber.start_date ? subscriber.start_date.substring(0, 10) : undefined 
+			} 
+		: { status: 'running' };
 	let isLoading = false;
 	let errorMessage = '';
 	const isEditing = !!subscriber;
@@ -19,10 +25,14 @@
 		isLoading = true;
 		errorMessage = '';
 		try {
+			const payload = {
+				...formData,
+				start_date: formData.start_date ? new Date(formData.start_date).toISOString() : undefined
+			};
 			if (isEditing && formData.id) {
-				await updateSubscriber(formData.id, formData);
+				await updateSubscriber(formData.id, payload);
 			} else {
-				await createSubscriber(formData);
+				await createSubscriber(payload);
 			}
 			dispatch('success');
 		} catch (e: any) {
@@ -110,6 +120,28 @@
 						bind:value={formData.landmark}
 						placeholder="e.g. Near City Hall"
 					/>
+				</div>
+
+				<!-- --- NEW: Start Date Input --- -->
+				{#if isAdmin()}
+				<div>
+					<label for="start_date" class="label">Start Date</label>
+					<input
+						type="date"
+						id="start_date"
+						class="input"
+						bind:value={formData.start_date}
+					/>
+				</div>
+				{/if}
+
+				<!-- Status Dropdown -->
+				<div>
+					<label for="status" class="label">Status</label>
+					<select id="status" class="input" bind:value={formData.status}>
+						<option value="running">Running</option>
+						<option value="closed">Closed</option>
+					</select>
 				</div>
 			</div>
 

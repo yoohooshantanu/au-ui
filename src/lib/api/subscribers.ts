@@ -14,8 +14,10 @@ export interface Subscriber {
 	state: string;
 	pincode: string;
 	unit: string;
-	center_name: string; // <-- NEW
-	landmark: string;    // <-- NEW
+	center_name: string;
+	landmark: string;
+	status: 'running' | 'closed';
+	start_date?: string;
 	created: string;
 	updated: string;
 }
@@ -31,6 +33,7 @@ export interface PaginatedSubscribers {
 export async function getSubscribers(
 	params: {
 		page?: number;
+		perPage?: number;
 		search?: string;
 		city?: string;
 		unit?: string;
@@ -38,6 +41,7 @@ export async function getSubscribers(
 		center_name?: string;
 		landmark?: string;
 		subscriberIds?: string[];
+		centerFilter?: string[];
 	} = {},
 	customFetch?: typeof fetch
 ): Promise<PaginatedSubscribers> {
@@ -69,9 +73,15 @@ export async function getSubscribers(
 		filters.push(`(${subset})`);
 	}
 
+	// Apply executive center filtering
+	if (params.centerFilter && params.centerFilter.length > 0 && !params.centerFilter.includes('ALL')) {
+		const centerSubset = params.centerFilter.map((c) => `center_name = ${quote(c)}`).join(' || ');
+		filters.push(`(${centerSubset})`);
+	}
+
 	if (filters.length > 0) query.set('filter', filters.join(' && '));
 	query.set('sort', '-created'); // Force deterministic sort order (newest first)
-	query.set('perPage', '25');
+	query.set('perPage', String(params.perPage || 25));
 
 
 
@@ -139,10 +149,14 @@ export async function getSubscriberById(id: string): Promise<Subscriber> {
 
 // No changes needed in this function.
 export async function getSubscriberPaymentCycles(id: string): Promise<PaymentCycle[]> {
-	const response = await fetch(`${API_BASE_URL}/collections/payment_cycles/records?subscriber=${id}`);
+	const query = new URLSearchParams();
+	query.set('filter', `subscriber = '${id.replace(/'/g, "\\'")}'`);
+	query.set('sort', '-start_date');
+	
+	const response = await fetch(`${API_BASE_URL}/collections/payment_cycles/records?${query.toString()}`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch subscriber payment cycles');
 	}
 	const data = await response.json();
-	return data.items;
+	return data.items || [];
 }

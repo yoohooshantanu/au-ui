@@ -12,6 +12,13 @@
 	import BulkPaymentLinkModal from '$lib/components/subscribers/BulkPaymentLinkModal.svelte';
 	import BulkAttendanceModal from '$lib/components/subscribers/BulkAttendanceModal.svelte';
 	import BulkDeleteModal from '$lib/components/subscribers/BulkDeleteModal.svelte';
+	import { isAdmin as checkIsAdmin } from '$lib/auth';
+
+	let userIsAdmin = false;
+	import { onMount as onMountHook } from 'svelte';
+	onMountHook(() => {
+		userIsAdmin = checkIsAdmin();
+	});
 
 	// The `data` prop is automatically passed from your +page.server.ts load function
 	export let data: PageData;
@@ -172,12 +179,14 @@
 			>
 				Mark Attendance
 			</button>
+			{#if userIsAdmin}
 			<button
 				on:click={() => (showBulkDeleteModal = true)}
 				class="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
 			>
 				Delete Readers
 			</button>
+			{/if}
 			<button
 				on:click={() => handleOpenModal()}
 				class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"

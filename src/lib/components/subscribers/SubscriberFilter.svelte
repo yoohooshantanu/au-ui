@@ -13,7 +13,7 @@
 	// --- NEW ---
 	let center_name = $page.url.searchParams.get('center_name') ?? '';
 	let landmark = $page.url.searchParams.get('landmark') ?? '';
-	// --- END NEW ---
+	let status = $page.url.searchParams.get('status') ?? '';
 	let has_due_payment = $page.url.searchParams.get('has_due_payment') === 'true';
 
 	// Client-side validation for pincode
@@ -46,10 +46,9 @@
 		if (unit) query.set('unit', unit);
 		if (city) query.set('city', city);
 		if (pincode) query.set('pincode', pincode);
-		// --- NEW ---
 		if (center_name) query.set('center_name', center_name);
 		if (landmark) query.set('landmark', landmark);
-		// --- END NEW ---
+		if (status) query.set('status', status);
 		if (has_due_payment) query.set('has_due_payment', 'true');
 		query.set('page', '1');
 
@@ -61,10 +60,9 @@
 		unit = '';
 		city = '';
 		pincode = '';
-		// --- NEW ---
 		center_name = '';
 		landmark = '';
-		// --- END NEW ---
+		status = '';
 		has_due_payment = false;
 		goto('/dashboard/subscribers', { keepFocus: true, noScroll: true });
 	}
@@ -136,6 +134,16 @@
 							<option value={l}>{l}</option>
 						{/each}
 					{/if}
+				</select>
+			</div>
+
+			<!-- Status Filter -->
+			<div>
+				<label for="status" class="label">Status</label>
+				<select id="status" bind:value={status} class="input">
+					<option value="">All Status</option>
+					<option value="running">Running</option>
+					<option value="closed">Closed</option>
 				</select>
 			</div>
 

@@ -13,6 +13,7 @@
 		type MissedDelivery
 	} from '$lib/api/missed_deliveries';
 	import MissedReasonModal from '$lib/components/subscribers/MissedReasonModal.svelte';
+	import { canBackdateDailyTrack } from '$lib/auth';
 
 	const subscriberId = $page.params.id;
 
@@ -149,13 +150,30 @@
 	}
 
 	function isDisabled(date: Date) {
-		// Only future days are blocked.
-		return isFuture(date);
+		// Only future days or days before start_date are blocked.
+		if (isFuture(date)) return true;
+		if (subscriber?.start_date && toYmd(date) < subscriber.start_date.split('T')[0]) return true;
+		
+		// If there is a billing cycle, strictly disable days outside it
+		if (billingCycle) {
+			const { start, end } = getCycleBounds(billingCycle);
+			if (start && end) {
+				const d = toYmd(date);
+				const s = toYmd(start);
+				const e = toYmd(end);
+				if (d < s || d > e) return true;
+			}
+		}
+
+		return false;
 	}
 
 	function isClickable(date: Date) {
-		// Only current day is clickable.
-		return isToday(date) && !isDisabled(date);
+		if (isDisabled(date)) return false;
+		// Admin can backdate - click any past or present day
+		if (canBackdateDailyTrack()) return !isFuture(date);
+		// Executive can only click today
+		return isToday(date);
 	}
 
 	function daysInGrid(month: Date) {
@@ -262,7 +280,7 @@
 		const existing = missedByDate.get(key);
 		try {
 			if (existing) {
-				if (!confirm('Mark as delivered for today?')) return;
+				if (!confirm(`Mark as delivered for ${key}?`)) return;
 				await deleteMissedDelivery(existing.id);
 				missedByDate.delete(key);
 				missedByDate = new Map(missedByDate);
@@ -372,7 +390,7 @@
 								{@const disabled = isDisabled(d)}
 								{@const clickable = isClickable(d)}
 								{@const today = isSameDay(d, new Date())}
-								{@const showDelivered = !missed && !isFuture(d)}
+								{@const showDelivered = !missed && !isDisabled(d)}
 								<button
 									class="day"
 									class:day-missed={missed}

@@ -42,6 +42,12 @@
 						{/if}
 					</td>
 					<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+						<a
+							href={`/dashboard/payments?is_due=true&center=${encodeURIComponent((user.centers || []).join(','))}`}
+							class="text-green-600 hover:text-green-900 mr-3 inline-block"
+						>
+							Payment Due List
+						</a>
 						<button
 							type="button"
 							on:click={() => dispatch('edit', user)}

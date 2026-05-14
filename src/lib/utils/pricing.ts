@@ -10,57 +10,51 @@ export function toYmd(date: Date) {
 	return `${yyyy}-${mm}-${dd}`;
 }
 
-export function eachDayYmdInclusive(startYmd: string, endYmd: string): string[] {
+export function daysBetween(startYmd: string, endYmd: string): number {
 	const start = new Date(startYmd);
 	const end = new Date(endYmd);
-	const out: string[] = [];
-	for (let d = new Date(start.getFullYear(), start.getMonth(), start.getDate()); d <= end; d.setDate(d.getDate() + 1)) {
-		out.push(toYmd(d));
-	}
-	return out;
+	const diffTime = Math.abs(end.getTime() - start.getTime());
+	const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+	return diffDays + 1; // Inclusive of both start and end days
 }
 
 function normalize(s?: string | null) {
 	return String(s ?? '').trim().toLowerCase();
 }
 
-function findRuleFor(scope: PriceScopeType, scopeValue: string, dateYmd: string, rules: PriceRule[]) {
+function findRuleFor(scope: PriceScopeType, scopeValue: string, rules: PriceRule[]) {
 	const target = normalize(scopeValue);
 	return rules.find(
 		(r) =>
-			r.date === dateYmd &&
 			r.scope_type === scope &&
 			normalize(r.scope_value) === target &&
 			r.is_active !== false
 	);
 }
 
-function findEffectiveDefaultRule(dateYmd: string, rules: PriceRule[]) {
-	const candidates = rules
-		.filter((r) => r.scope_type === 'default' && r.is_active !== false && String(r.date || '') <= dateYmd)
-		.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+function findEffectiveDefaultRule(rules: PriceRule[]) {
+	const candidates = rules.filter((r) => r.scope_type === 'default' && r.is_active !== false);
 	return candidates[0] ?? null;
 }
 
 export function resolveDailyPrice(params: {
 	subscriber: Subscriber;
-	dateYmd: string;
 	rules: PriceRule[];
 	defaultPrice?: number;
 }): number {
-	const { subscriber, dateYmd, rules } = params;
+	const { subscriber, rules } = params;
 	let defaultPrice = params.defaultPrice ?? DEFAULT_DAILY_PRICE;
-	const effectiveDefault = findEffectiveDefaultRule(dateYmd, rules);
+	const effectiveDefault = findEffectiveDefaultRule(rules);
 	if (effectiveDefault) defaultPrice = Number(effectiveDefault.price);
 
 	// Precedence: unit > center > city > default
-	const unitRule = findRuleFor('unit', subscriber.unit, dateYmd, rules);
+	const unitRule = findRuleFor('unit', subscriber.unit, rules);
 	if (unitRule) return Number(unitRule.price);
 
-	const centerRule = findRuleFor('center', subscriber.center_name, dateYmd, rules);
+	const centerRule = findRuleFor('center', subscriber.center_name, rules);
 	if (centerRule) return Number(centerRule.price);
 
-	const cityRule = findRuleFor('city', subscriber.city, dateYmd, rules);
+	const cityRule = findRuleFor('city', subscriber.city, rules);
 	if (cityRule) return Number(cityRule.price);
 
 	return defaultPrice;
@@ -76,9 +70,8 @@ export function computeCycleTotal(params: {
 	const { subscriber, startYmd, endYmd, rules } = params;
 	const defaultPrice = params.defaultPrice ?? DEFAULT_DAILY_PRICE;
 
-	let total = 0;
-	for (const day of eachDayYmdInclusive(startYmd, endYmd)) {
-		total += resolveDailyPrice({ subscriber, dateYmd: day, rules, defaultPrice });
-	}
-	return total;
+	const dailyPrice = resolveDailyPrice({ subscriber, rules, defaultPrice });
+	const numDays = daysBetween(startYmd, endYmd);
+
+	return dailyPrice * numDays;
 }

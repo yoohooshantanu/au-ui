@@ -45,12 +45,10 @@
 		centers = [];
 	}
 
-	// Get centers for selected city - using lookups instead of city_centers API
+	// Get centers for selected city
 	function centersForSelectedCity(): string[] {
-		if (!city || !lookups?.center_names) return [];
-		// For now, return all centers since we don't have city-center mapping in lookups
-		// In the future, this should be filtered by city
-		return lookups.center_names;
+		if (!city || !lookups?.cityToCenters) return [];
+		return lookups.cityToCenters[city] || [];
 	}
 
 	async function handleSubmit() {
@@ -143,16 +141,7 @@
 						<p class="text-xs text-gray-400 mb-2">Available centers: {centersForSelectedCity().length}</p>
 						<p class="text-xs text-gray-400 mb-2">Selected centers: {centers.length}</p>
 					{/if}
-	// Toggle center selection manually to avoid bind:group issues
-	function toggleCenter(center: string, isChecked: boolean) {
-		if (isChecked) {
-			centers = [...centers, center];
-		} else {
-			centers = centers.filter(c => c !== center);
-		}
-	}
-	</script>
-    <!-- ... inside template ... -->
+
 					<div class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-md p-2">
 						{#each centersForSelectedCity() as center}
 							<label class="flex items-center space-x-2 text-sm">

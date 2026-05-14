@@ -1,4 +1,22 @@
-import { handler } from './build/handler.js';
+import fs from 'fs';
+import path from 'path';
+
+// Hydrate .env manually for SvelteKit Node Adapter
+try {
+    const envFile = fs.readFileSync(path.resolve('.env'), 'utf8');
+    envFile.split('\n').forEach(line => {
+        const match = line.trim().match(/^([^#=]+)=(.*)$/);
+        if (match) {
+            const key = match[1].trim();
+            const val = match[2].replace(/^["']|["']$/g, '').trim();
+            if (!process.env[key]) process.env[key] = val;
+        }
+    });
+} catch (e) {
+    console.log("No .env file found or parsed");
+}
+
+const { handler } = await import('./build/handler.js');
 
 const port = process.env.PORT || 3000;
 

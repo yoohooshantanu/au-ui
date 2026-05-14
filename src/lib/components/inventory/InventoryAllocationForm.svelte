@@ -3,6 +3,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import type { Lookups } from '$lib/api/dashboard';
 	import { getCityCenters, type CityCenter } from '$lib/api/city_centers';
+	import { user } from '$lib/stores/auth';
 
 	export let lookups: Lookups | null = null;
 	const dispatch = createEventDispatcher();
@@ -13,11 +14,10 @@
 	let addedBy = '';
 	let allCenters: string[] = [];
 
-	// Default added_by to current user if available (placeholder)
+	// Set added_by to the current user's name or ID
 	onMount(async () => {
 		date = new Date().toISOString().split('T')[0];
-		// TODO: get current user from auth store
-		addedBy = 'admin';
+		addedBy = $user ? ($user.name || $user.id) : '';
 		
 		// Get all centers from city-centers mapping
 		try {

@@ -7,6 +7,7 @@
     type PaymentCycle,
   } from "$lib/api/payment_cycles";
   import CycleManagerModal from "./CycleManagerModal.svelte";
+  import { canEditPayments } from "$lib/auth";
 
   export let subscriberId: string;
 
@@ -16,6 +17,12 @@
   let showCycleModal = false;
   let selectedCycle: PaymentCycle | null = null;
   let copiedId: string | null = null;
+  let userCanEdit = false;
+
+  import { onMount as onMountPH } from 'svelte';
+  onMountPH(() => {
+    userCanEdit = canEditPayments();
+  });
 
   async function loadHistory() {
     isLoading = true;
@@ -135,8 +142,12 @@
         <thead class="bg-gray-50">
           <tr>
             <th class="th">Billing Period</th>
+            <th class="th">Paid On</th>
+            <th class="th">Unit & Center</th>
+            <th class="th text-center">Executive</th>
             <th class="th text-center">Amount</th>
-            <th class="th text-center">Payment Left</th>
+            <th class="th text-center">Coupon</th>
+            <th class="th text-center">Total Cash</th>
             <th class="th text-center w-1/3">Actions</th>
           </tr>
         </thead>
@@ -151,13 +162,23 @@
                   to {formatDate(cycle.end_date)}
                 </div>
               </td>
-              <td class="td text-center font-mono text-gray-800"> 
-                <div>Rs. {cycle.amount}</div>
-                {#if cycle.coupon_amount}
-                  <div class="text-xs text-gray-500">Coupon: -Rs. {cycle.coupon_amount}</div>
-                {/if}
+              <td class="td text-sm text-gray-800 font-medium whitespace-nowrap">
+                {formatDate(cycle.last_payment)}
               </td>
-              <td class="td text-center font-mono text-gray-800">
+              <td class="td text-sm text-gray-600">
+                <div class="font-medium">{cycle.subscriber_details?.unit ?? 'N/A'}</div>
+                <div class="text-xs text-gray-500">{cycle.subscriber_details?.center_name ?? 'N/A'}</div>
+              </td>
+              <td class="td text-sm text-center text-gray-600">
+                <div class="font-medium">{cycle.collector_details?.name ?? '—'}</div>
+              </td>
+              <td class="td text-center font-mono text-gray-800"> 
+                Rs. {Number(cycle.amount || 0).toFixed(2)}
+              </td>
+              <td class="td text-center font-mono text-gray-500">
+                Rs. {Number(cycle.coupon_amount || 0).toFixed(2)}
+              </td>
+              <td class="td text-center font-mono font-medium text-indigo-700">
                 Rs. {(Number(cycle.amount || 0) - Number(cycle.coupon_amount || 0)).toFixed(2)}
               </td>
               <td class="td text-center">
@@ -169,6 +190,7 @@
                   >
                     Invoice Link
                   </button>
+                  {#if userCanEdit}
                   <button
                     on:click={() => handleEditCycle(cycle)}
                     class="btn-action"
@@ -181,6 +203,7 @@
                   >
                     Delete
                   </button>
+                  {/if}
                 </div>
               </td>
             </tr>

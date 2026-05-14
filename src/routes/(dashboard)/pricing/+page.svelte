@@ -16,21 +16,11 @@
 	let showForm = false;
 	let selectedRule: PriceRule | null = null;
 
-	function toYmd(date: Date) {
-		const yyyy = date.getFullYear();
-		const mm = String(date.getMonth() + 1).padStart(2, '0');
-		const dd = String(date.getDate()).padStart(2, '0');
-		return `${yyyy}-${mm}-${dd}`;
-	}
-
-	let rangeStart = toYmd(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
-	let rangeEnd = toYmd(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0));
-
 	async function loadRules() {
 		isLoading = true;
 		error = null;
 		try {
-			rules = await listPriceRules({ start: rangeStart, end: rangeEnd });
+			rules = await listPriceRules();
 		} catch (e: any) {
 			error = e.message || 'Failed to load pricing rules';
 		} finally {
@@ -39,7 +29,6 @@
 	}
 
 	onMount(loadRules);
-	$: rangeStart, rangeEnd, loadRules();
 
 	function handleAdd() {
 		selectedRule = null;
@@ -80,30 +69,17 @@
 	<div class="flex justify-between items-center">
 		<div>
 			<h1 class="text-3xl font-bold text-gray-900">Pricing Rules</h1>
-			<p class="text-gray-600 mt-1">Default daily price: <span class="font-mono">Rs. {DEFAULT_DAILY_PRICE}</span>. Add single-date overrides by Unit / Center / City, or set a new Default price effective from a future date.</p>
+			<p class="text-gray-600 mt-1">Default daily price: <span class="font-mono">Rs. {DEFAULT_DAILY_PRICE}</span>. Add location-specific permanent overrides by Unit, Center, or City.</p>
 		</div>
 		<button on:click={handleAdd} class="btn-primary">Add Rule</button>
 	</div>
 
-	<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-		<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1" for="start">From</label>
-				<input id="start" type="date" class="input" bind:value={rangeStart} />
-			</div>
-			<div>
-				<label class="block text-sm font-medium text-gray-700 mb-1" for="end">To</label>
-				<input id="end" type="date" class="input" bind:value={rangeEnd} />
-			</div>
-		</div>
-	</div>
 
 	<div class="bg-white rounded-lg shadow-sm overflow-hidden">
 		<div class="overflow-x-auto">
 			<table class="w-full min-w-[900px] text-sm">
 				<thead class="bg-gray-50">
 					<tr>
-						<th class="th">Date</th>
 						<th class="th">Scope</th>
 						<th class="th">Value</th>
 						<th class="th text-right">Daily Price</th>
@@ -113,15 +89,14 @@
 				</thead>
 				<tbody class="divide-y divide-gray-200">
 					{#if isLoading}
-						<tr><td colspan="6" class="p-6 text-center text-gray-500">Loading...</td></tr>
+						<tr><td colspan="5" class="p-6 text-center text-gray-500">Loading...</td></tr>
 					{:else if error}
-						<tr><td colspan="6" class="p-6 text-center text-red-600">{error}</td></tr>
+						<tr><td colspan="5" class="p-6 text-center text-red-600">{error}</td></tr>
 					{:else if rules.length === 0}
-						<tr><td colspan="6" class="p-6 text-center text-gray-500">No rules found for this range.</td></tr>
+						<tr><td colspan="5" class="p-6 text-center text-gray-500">No active pricing rules found.</td></tr>
 					{:else}
 						{#each rules as r (r.id)}
 							<tr>
-								<td class="td font-mono">{r.date}</td>
 								<td class="td">{r.scope_type}</td>
 								<td class="td">{r.scope_value}</td>
 								<td class="td text-right font-mono">Rs. {Number(r.price || 0).toFixed(2)}</td>

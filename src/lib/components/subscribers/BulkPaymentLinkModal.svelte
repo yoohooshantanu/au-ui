@@ -3,13 +3,15 @@
 	import { getSubscribers, type Subscriber } from '$lib/api/subscribers';
 	import { getPaymentCycles, updatePaymentCycle, type PaymentCycle } from '$lib/api/payment_cycles';
 	import { getLookups, type Lookups } from '$lib/api/dashboard';
+	import { savePaymentIntent, buildPaymentPageUrl } from '$lib/payu';
 	
 	const dispatch = createEventDispatcher();
 	
 	let isLoading = false;
 	let errorMessage = '';
 	let successMessage = '';
-	let selectedReaders: Subscriber[] = [];
+	let availableReaders: Subscriber[] = [];
+	let checkedReaderIds: string[] = [];
 	let readersWithDuePayments: Array<{
 		subscriber: Subscriber;
 		dueCycles: PaymentCycle[];
@@ -60,18 +62,19 @@
 
 			if (filters.has_due_payment) {
 				// Filter readers with due payments
-				selectedReaders = readersData.items?.filter(r => readerIdsWithDues.has(r.id)) || [];
+				availableReaders = readersData.items?.filter(r => readerIdsWithDues.has(r.id)) || [];
 			} else {
-				selectedReaders = readersData.items || [];
+				availableReaders = readersData.items || [];
 			}
 
 			// Group cycles by subscriber for all selected readers
-			readersWithDuePayments = selectedReaders.map(reader => ({
+			readersWithDuePayments = availableReaders.map(reader => ({
 				subscriber: reader,
 				dueCycles: dueCycles.items?.filter(c => c.subscriber === reader.id) || []
 			}));
+			checkedReaderIds = availableReaders.map(r => r.id);
 			
-			successMessage = `Found ${selectedReaders.length} readers matching the filters`;
+			successMessage = `Found ${availableReaders.length} readers matching the filters`;
 		} catch (e: any) {
 			errorMessage = e.message || 'Failed to load readers';
 		} finally {
@@ -80,7 +83,7 @@
 	}
 	
 	async function sendBulkPaymentLinks() {
-		if (selectedReaders.length === 0) {
+		if (checkedReaderIds.length === 0) {
 			errorMessage = 'No readers selected';
 			return;
 		}
@@ -93,11 +96,25 @@
 			let successCount = 0;
 			let errorCount = 0;
 			
-			for (const { subscriber, dueCycles } of readersWithDuePayments) {
+			const readersToProcess = readersWithDuePayments.filter(rp => checkedReaderIds.includes(rp.subscriber.id));
+			
+			for (const { subscriber, dueCycles } of readersToProcess) {
 				try {
 					// Generate payment link for each due cycle
 					for (const cycle of dueCycles) {
-						const paymentLink = `https://dummy.payment.link/${cycle.subscriber}/${Date.now()}`;
+						const txnId = `TX_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+						await savePaymentIntent({
+							txnId,
+							amount: String(cycle.amount),
+							productInfo: 'Subscription Payment',
+							firstName: subscriber.name || 'Reader',
+							email: 'noemail@example.com',
+							phone: subscriber.phone || '0000000000',
+							subscriberId: subscriber.id,
+							cycleId: cycle.id
+						});
+						
+						const paymentLink = buildPaymentPageUrl(txnId);
 						await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
 					}
 					successCount++;
@@ -123,6 +140,14 @@
 		}
 	}
 	
+	function toggleAllReaders() {
+		if (checkedReaderIds.length === availableReaders.length) {
+			checkedReaderIds = [];
+		} else {
+			checkedReaderIds = availableReaders.map(r => r.id);
+		}
+	}
+
 	function closeModal() {
 		dispatch('close');
 	}
@@ -226,15 +251,28 @@
 		{/if}
 		
 		<!-- Reader List -->
-		{#if selectedReaders.length > 0}
+		{#if availableReaders.length > 0}
 			<div class="mb-6">
-				<h3 class="font-semibold text-gray-900 mb-3">
-					Selected Readers ({selectedReaders.length})
-				</h3>
+				<div class="flex justify-between items-center mb-3">
+					<h3 class="font-semibold text-gray-900">
+						Selected Readers ({checkedReaderIds.length} / {availableReaders.length})
+					</h3>
+					<button on:click={toggleAllReaders} class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+						{checkedReaderIds.length === availableReaders.length ? 'Deselect All' : 'Select All'}
+					</button>
+				</div>
 				<div class="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
 					<table class="w-full text-sm">
-						<thead class="bg-gray-50 sticky top-0">
+						<thead class="bg-gray-50 sticky top-0 z-10">
 							<tr>
+								<th class="px-4 py-2 text-left font-medium text-gray-700 w-12">
+									<input 
+										type="checkbox" 
+										class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+										checked={checkedReaderIds.length === availableReaders.length && availableReaders.length > 0}
+										on:change={toggleAllReaders}
+									>
+								</th>
 								<th class="px-4 py-2 text-left font-medium text-gray-700">Name</th>
 								<th class="px-4 py-2 text-left font-medium text-gray-700">Phone</th>
 								<th class="px-4 py-2 text-left font-medium text-gray-700">City</th>
@@ -243,7 +281,21 @@
 						</thead>
 						<tbody class="divide-y divide-gray-200">
 							{#each readersWithDuePayments as { subscriber, dueCycles }}
-								<tr>
+								<tr class="hover:bg-gray-50 cursor-pointer" on:click={() => {
+									if (checkedReaderIds.includes(subscriber.id)) {
+										checkedReaderIds = checkedReaderIds.filter(id => id !== subscriber.id);
+									} else {
+										checkedReaderIds = [...checkedReaderIds, subscriber.id];
+									}
+								}}>
+									<td class="px-4 py-2" on:click|stopPropagation>
+										<input 
+											type="checkbox" 
+											class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+											value={subscriber.id} 
+											bind:group={checkedReaderIds} 
+										>
+									</td>
 									<td class="px-4 py-2">{subscriber.name}</td>
 									<td class="px-4 py-2">{subscriber.phone}</td>
 									<td class="px-4 py-2">{subscriber.city}</td>
@@ -266,16 +318,16 @@
 			>
 				Cancel
 			</button>
-			{#if selectedReaders.length > 0}
+			{#if availableReaders.length > 0}
 				<button
 					on:click={sendBulkPaymentLinks}
-					disabled={isLoading}
+					disabled={isLoading || checkedReaderIds.length === 0}
 					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 				>
 					{#if isLoading}
 						<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
 					{/if}
-					Send Payment Links ({selectedReaders.length})
+					Send Payment Links ({checkedReaderIds.length})
 				</button>
 			{/if}
 		</div>

@@ -55,9 +55,9 @@
 		try {
 			const { startYmd, endYmd } = monthBounds(selectedMonth);
 
-			// Load price rules for the month (optional)
+			// Load permanent price rules
 			try {
-				rules = await listPriceRules({ start: startYmd, end: endYmd });
+				rules = await listPriceRules();
 			} catch (e: any) {
 				pricingError = e.message || 'Pricing rules not available';
 				rules = [];
@@ -69,14 +69,20 @@
 			const dueCyclesResp = await getPaymentCycles({ page: 1, is_due: true, month: selectedMonth });
 			const dueCycles: PaymentCycle[] = dueCyclesResp.items ?? [];
 
-			// Load subscribers in pages (simple loop). This keeps dashboard handlers untouched.
-			const subs: Subscriber[] = [];
-			let page = 1;
-			while (true) {
-				const resp = await getSubscribers({ page });
-				subs.push(...(resp.items ?? []));
-				if (page >= (resp.totalPages ?? 1)) break;
-				page += 1;
+			// Load subscribers in pages efficiently using Promise.all
+			const firstResp = await getSubscribers({ page: 1, perPage: 200 });
+			const subs: Subscriber[] = [...(firstResp.items ?? [])];
+			const totalPages = firstResp.totalPages ?? 1;
+
+			if (totalPages > 1) {
+				const promises = [];
+				for (let p = 2; p <= totalPages; p++) {
+					promises.push(getSubscribers({ page: p, perPage: 200 }));
+				}
+				const results = await Promise.all(promises);
+				for (const res of results) {
+					subs.push(...(res.items ?? []));
+				}
 			}
 
 			const subById = new Map(subs.map((s) => [s.id, s]));
@@ -136,6 +142,24 @@
 		},
 		{ total: 0, coupon: 0, payable: 0 }
 	);
+
+	async function downloadXlsx() {
+		const { utils, writeFile } = await import('xlsx');
+		const ws = utils.json_to_sheet(rows.map(r => ({
+			'Reader Name': r.name,
+			'Unit': r.unit,
+			'Center': r.center_name,
+			'City': r.city,
+			'Cycle Start': r.cycleStart,
+			'Cycle End': r.cycleEnd,
+			'Total': r.total,
+			'Coupon': r.coupon,
+			'Payable (incl Coupon)': r.payable
+		})));
+		const wb = utils.book_new();
+		utils.book_append_sheet(wb, ws, 'Monthly Billing');
+		writeFile(wb, `monthly_billing_${selectedMonth}.xlsx`);
+	}
 </script>
 
 <div class="space-y-4">
@@ -144,9 +168,22 @@
 			<h1 class="text-3xl font-bold text-gray-800">Monthly Billing</h1>
 			<p class="mt-1 text-gray-500">Computed using default Rs. {DEFAULT_DAILY_PRICE} + date overrides (Unit &gt; Center &gt; City).</p>
 		</div>
-		<div class="flex items-center gap-2">
-			<label class="text-sm text-gray-600" for="month">Month</label>
-			<input id="month" type="month" class="input" bind:value={selectedMonth} />
+		<div class="flex items-center gap-3">
+			{#if rows.length > 0}
+				<button
+					on:click={downloadXlsx}
+					class="rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 flex items-center gap-2"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+					</svg>
+					Download Excel
+				</button>
+			{/if}
+			<div class="flex items-center gap-2">
+				<label class="text-sm text-gray-600" for="month">Month</label>
+				<input id="month" type="month" class="input" bind:value={selectedMonth} />
+			</div>
 		</div>
 	</div>
 

@@ -1,120 +1,122 @@
 <script lang="ts">
-  const fakeGeneratedReports = [
-    { name: "Monthly Revenue - June 2025", date: "2025-07-01", by: "Admin" },
-    { name: "Reader Growth Q2 2025", date: "2025-07-01", by: "Admin" },
-    { name: "Plan Distribution Analysis", date: "2025-06-15", by: "Admin" },
-    {
-      name: "Complaint Resolution Times - May 2025",
-      date: "2025-06-05",
-      by: "Admin",
-    },
-  ];
+	// Reports landing page — links to real report sub-pages
+	const reports = [
+		{
+			title: 'Monthly Billing',
+			description: 'View due billing amounts per subscriber for a given month, with reader name, unit, center, coupon, and total cash.',
+			href: '/dashboard/reports/monthly-billing',
+			color: 'bg-indigo-50 text-indigo-700 ring-indigo-200'
+		},
+		{
+			title: 'Daily Supply Report',
+			description: 'View supply data per center for a specific date.',
+			href: '/dashboard/reports/supply-report',
+			color: 'bg-green-50 text-green-700 ring-green-200'
+		},
+		{
+			title: 'Center-wise Supply',
+			description: 'View supply aggregated by center for the month.',
+			href: '/dashboard/reports/supply-report?type=center',
+			color: 'bg-yellow-50 text-yellow-700 ring-yellow-200'
+		},
+		{
+			title: 'Unit-wise Supply',
+			description: 'View supply aggregated by unit for the month.',
+			href: '/dashboard/reports/supply-report?type=unit',
+			color: 'bg-purple-50 text-purple-700 ring-purple-200'
+		},
+		{
+			title: 'All Units Supply',
+			description: 'View combined supply across all units for the month.',
+			href: '/dashboard/reports/supply-report?type=all',
+			color: 'bg-orange-50 text-orange-700 ring-orange-200'
+		},
+		{
+			title: 'Center-wise Payment/Due',
+			description: 'Payment and due amounts aggregated by center for the month.',
+			href: '/dashboard/reports/payment-report?type=center',
+			color: 'bg-blue-50 text-blue-700 ring-blue-200'
+		},
+		{
+			title: 'Unit-wise Payment/Due',
+			description: 'Payment and due amounts aggregated by unit for the month.',
+			href: '/dashboard/reports/payment-report?type=unit',
+			color: 'bg-teal-50 text-teal-700 ring-teal-200'
+		},
+		{
+			title: 'Daily Payment',
+			description: 'Payment summary for a specific date, grouped by center.',
+			href: '/dashboard/reports/payment-report?type=daily',
+			color: 'bg-cyan-50 text-cyan-700 ring-cyan-200'
+		},
+		{
+			title: 'All Units Payment/Due',
+			description: 'Combined payment and due totals across all units.',
+			href: '/dashboard/reports/payment-report?type=all',
+			color: 'bg-rose-50 text-rose-700 ring-rose-200'
+		},
+		{
+			title: 'Executive-wise Payment/Due',
+			description: 'Payment and due amounts grouped by executive (non-admin users).',
+			href: '/dashboard/reports/payment-report?type=executive',
+			color: 'bg-amber-50 text-amber-700 ring-amber-200'
+		},
+		{
+			title: 'Center-wise Customer List',
+			description: 'Complete reader directory grouped by center with contact details.',
+			href: '/dashboard/reports/customer-list?type=center',
+			color: 'bg-sky-50 text-sky-700 ring-sky-200'
+		},
+		{
+			title: 'Unit-wise Customer List',
+			description: 'Reader list grouped by unit.',
+			href: '/dashboard/reports/customer-list?type=unit',
+			color: 'bg-violet-50 text-violet-700 ring-violet-200'
+		},
+		{
+			title: 'All Units Customer List',
+			description: 'Complete list of all readers across all units.',
+			href: '/dashboard/reports/customer-list?type=all',
+			color: 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200'
+		},
+		{
+			title: 'Executive-wise Customer List',
+			description: 'Reader list grouped by executive (non-admin users).',
+			href: '/dashboard/reports/customer-list?type=executive',
+			color: 'bg-lime-50 text-lime-700 ring-lime-200'
+		}
+	];
 </script>
 
-<div class="space-y-8">
-  <div>
-    <h1 class="text-3xl font-bold text-gray-800">Reports Center</h1>
-    <p class="mt-1 text-gray-500">Generate and download operational reports.</p>
-  </div>
+<div class="space-y-6">
+	<div>
+		<h1 class="text-3xl font-bold text-gray-800">Reports</h1>
+		<p class="mt-1 text-gray-500">Select a report to view and download data.</p>
+	</div>
 
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-800 mb-2">Quick Reports</h3>
-    <p class="text-sm text-gray-500 mb-4">Open pre-built reports.</p>
-    <a
-      href="/dashboard/reports/monthly-billing"
-      class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
-    >
-      Monthly Billing
-    </a>
-  </div>
-
-  <!-- Report Generation Section -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-      Generate a New Report
-    </h3>
-    <div class="flex flex-wrap items-end gap-4">
-      <div class="flex-grow">
-        <label for="report-type" class="block text-sm font-medium text-gray-700"
-          >Report Type</label
-        >
-        <select
-          id="report-type"
-          class="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-        >
-          <option disabled selected>Choose a report...</option>
-          <option>Monthly Revenue</option>
-          <option>Reader Growth</option>
-          <option>Plan Distribution Analysis</option>
-          <option>Complaint Resolution Times</option>
-        </select>
-      </div>
-      <button
-        class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-md hover:bg-indigo-700 flex items-center gap-2"
-      >
-        <!-- Fake Download Icon -->
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-2 w-2"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        Generate & Download
-      </button>
-    </div>
-  </div>
-
-  <!-- Generated Reports History -->
-  <div class="bg-white p-6 rounded-lg shadow-md">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">
-      Generated Reports History
-    </h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
-          <tr>
-            <th class="px-4 py-3">Report Name</th>
-            <th class="px-4 py-3">Date Generated</th>
-            <th class="px-4 py-3">Generated By</th>
-            <th class="px-4 py-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each fakeGeneratedReports as report}
-            <tr class="border-b hover:bg-gray-50">
-              <td class="px-4 py-3 font-medium">{report.name}</td>
-              <td class="px-4 py-3">{report.date}</td>
-              <td class="px-4 py-3">{report.by}</td>
-              <td class="px-4 py-3">
-                <a
-                  href="#"
-                  on:click|preventDefault
-                  class="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    ><path
-                      fill-rule="evenodd"
-                      d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                      clip-rule="evenodd"
-                    /></svg
-                  >
-                  Download
-                </a>
-              </td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </div>
+	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+		{#each reports as report}
+			<a
+				href={report.href}
+				class="block bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group"
+			>
+				<div class="flex items-start gap-4">
+					<div class="flex-shrink-0 w-10 h-10 rounded-lg {report.color} ring-1 ring-inset flex items-center justify-center">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+						</svg>
+					</div>
+					<div class="flex-1">
+						<h3 class="text-base font-semibold text-gray-800 group-hover:text-indigo-600 transition-colors">
+							{report.title}
+						</h3>
+						<p class="mt-1 text-sm text-gray-500">{report.description}</p>
+					</div>
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+						<path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+					</svg>
+				</div>
+			</a>
+		{/each}
+	</div>
 </div>

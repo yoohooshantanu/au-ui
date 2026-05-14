@@ -16,12 +16,13 @@ export interface Lookups {
 	cities: string[];
 	center_names: string[]; // <-- NEW
 	landmarks: string[];    // <-- NEW
+	cityToCenters?: Record<string, string[]>;
 }
 
 /**
  * Fetches the main statistics for the dashboard homepage.
  */
-export async function getDashboardStats(customFetch?: typeof fetch): Promise<DashboardStats> {
+export async function getDashboardStats(customFetch?: typeof fetch, centerFilter?: string[]): Promise<DashboardStats> {
 	try {
 		// Get current month dates
 		const now = new Date();
@@ -31,43 +32,63 @@ export async function getDashboardStats(customFetch?: typeof fetch): Promise<Das
 		// Use authFetch to ensure API Rules are applied
 		const fetchFn = customFetch || authFetch;
 
-		// Fetch subscribers (API Rules will filter this for us automatically now)
-		const subscribersResponse = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?perPage=500`);
-
-		// If 403/404 (due to permissions), treat as empty lists rather than crashing
-		if (!subscribersResponse.ok) {
-			console.warn('Dashboard stats fetch failed (likely permission)', subscribersResponse.status);
-			return {
-				total_subscribers: 0,
-				total_due_amount: 0,
-				revenue_this_month: 0,
-				new_subscribers_this_month: 0
-			};
+		// --- Fetch ALL subscribers using pagination ---
+		let allSubscribers: any[] = [];
+		let totalSubscriberCount = 0;
+		let subPage = 1;
+		while (true) {
+			const subRes = await fetchFn(`${API_BASE_URL}/collections/subscribers/records?perPage=500&page=${subPage}`);
+			if (!subRes.ok) {
+				console.warn('Dashboard stats: subscribers fetch failed', subRes.status);
+				break;
+			}
+			const subData = await subRes.json();
+			const items = subData.items || [];
+			allSubscribers.push(...items);
+			totalSubscriberCount = subData.totalItems || allSubscribers.length;
+			if (subPage >= (subData.totalPages || 1)) break;
+			subPage++;
 		}
 
-		const subscribersData = await subscribersResponse.json();
-		const subscribers = subscribersData.items || [];
+		// --- Fetch ALL payment cycles using pagination ---
+		let allPaymentCycles: any[] = [];
+		let pcPage = 1;
+		while (true) {
+			const pcRes = await fetchFn(`${API_BASE_URL}/collections/payment_cycles/records?perPage=500&page=${pcPage}`);
+			if (!pcRes.ok) break;
+			const pcData = await pcRes.json();
+			const items = pcData.items || [];
+			allPaymentCycles.push(...items);
+			if (pcPage >= (pcData.totalPages || 1)) break;
+			pcPage++;
+		}
 
-		// Fetch payment cycles
-		const paymentCyclesResponse = await fetchFn(`${API_BASE_URL}/collections/payment_cycles/records?perPage=1000`);
-		const paymentCyclesData = paymentCyclesResponse.ok ? await paymentCyclesResponse.json() : { items: [] };
-		const paymentCycles = paymentCyclesData.items || [];
+		// Calculate statistics using the FULL dataset
+		// If centerFilter is provided, filter subscribers and cycles by those centers
+		let filteredSubscribers = allSubscribers;
+		let filteredCycles = allPaymentCycles;
 
-		// Calculate statistics
-		const total_subscribers = subscribers.length;
+		if (centerFilter && centerFilter.length > 0 && !centerFilter.includes('ALL')) {
+			filteredSubscribers = allSubscribers.filter((s: any) => centerFilter.includes(s.center_name));
+			const filteredSubIds = new Set(filteredSubscribers.map((s: any) => s.id));
+			filteredCycles = allPaymentCycles.filter((c: any) => filteredSubIds.has(c.subscriber));
+			totalSubscriberCount = filteredSubscribers.length;
+		}
+
+		const total_subscribers = totalSubscriberCount;
 
 		// Total due amount (sum of amounts where is_due is true)
-		const total_due_amount = paymentCycles
+		const total_due_amount = filteredCycles
 			.filter((cycle: any) => cycle.is_due)
 			.reduce((sum: number, cycle: any) => sum + (cycle.amount || 0), 0);
 
 		// Revenue this month (sum of amounts with last_payment in current month)
-		const revenue_this_month = paymentCycles
+		const revenue_this_month = filteredCycles
 			.filter((cycle: any) => cycle.last_payment && cycle.last_payment >= monthStart && cycle.last_payment <= monthEnd)
 			.reduce((sum: number, cycle: any) => sum + (cycle.amount || 0), 0);
 
 		// New subscribers this month (count created in current month)
-		const new_subscribers_this_month = subscribers
+		const new_subscribers_this_month = filteredSubscribers
 			.filter((sub: any) => sub.created >= monthStart && sub.created <= monthEnd)
 			.length;
 
@@ -88,59 +109,74 @@ export async function getDashboardStats(customFetch?: typeof fetch): Promise<Das
  * Fetches unique values from existing subscribers table for dropdowns
  * Extracts unique units, cities, centers, and landmarks from subscriber records
  */
-export async function getLookups(customFetch?: typeof fetch): Promise<Lookups> {
+export async function getLookups(customFetch?: typeof fetch, centerFilter?: string[]): Promise<Lookups> {
 	try {
 		const fetchFn = customFetch || fetch;
-
-		// Fetch from multiple sources in parallel to be robust
-		const [subscribersRes, citiesRes, centersRes] = await Promise.all([
-			authFetch(`${API_BASE_URL}/collections/subscribers/records?perPage=200`, {}, fetchFn).catch(() => null),
-			authFetch(`${API_BASE_URL}/collections/cities/records?perPage=100`, {}, fetchFn).catch(() => null),
-			authFetch(`${API_BASE_URL}/collections/city_centers/records?perPage=200`, {}, fetchFn).catch(() => null)
-		]);
 
 		const units = new Set<string>();
 		const cities = new Set<string>();
 		const center_names = new Set<string>();
 		const landmarks = new Set<string>();
+		const cityToCentersMap: Record<string, Set<string>> = {};
 
 		// 1. Extract from Cities Collection (Official List)
+		const citiesRes = await authFetch(`${API_BASE_URL}/collections/cities/records?perPage=100`, {}, fetchFn).catch(() => null);
 		if (citiesRes?.ok) {
 			const data = await citiesRes.json();
 			data.items?.forEach((item: any) => {
 				if (item.name) cities.add(item.name);
-				// Assuming cities have a 'unit' field, commonly the case
 				if (item.unit) units.add(item.unit);
 			});
 		}
 
 		// 2. Extract from City Centers Collection (Official List)
+		const centersRes = await authFetch(`${API_BASE_URL}/collections/city_centers/records?perPage=200`, {}, fetchFn).catch(() => null);
 		if (centersRes?.ok) {
 			const data = await centersRes.json();
 			data.items?.forEach((item: any) => {
-				// Try common field names for center name
 				const name = item.name || item.center_name;
 				if (name) center_names.add(name);
 			});
 		}
 
 		// 3. Fallback/Augment with Subscriber Data (Historical usage)
-		if (subscribersRes?.ok) {
-			const data = await subscribersRes.json();
-			const items = data.items || [];
-			items.forEach((s: any) => {
-				if (s.unit) units.add(s.unit);
-				if (s.city) cities.add(s.city);
-				if (s.center_name) center_names.add(s.center_name);
-				if (s.landmark) landmarks.add(s.landmark);
-			});
+		// Fetch ALL subscribers
+		let allSubscribers: any[] = [];
+		let subPage = 1;
+		while (true) {
+			const subRes = await authFetch(`${API_BASE_URL}/collections/subscribers/records?perPage=500&page=${subPage}`, {}, fetchFn).catch(() => null);
+			if (!subRes || !subRes.ok) break;
+			const subData = await subRes.json();
+			const items = subData.items || [];
+			allSubscribers.push(...items);
+			if (subPage >= (subData.totalPages || 1)) break;
+			subPage++;
+		}
+
+		allSubscribers.forEach((s: any) => {
+			if (s.unit) units.add(s.unit);
+			if (s.city) cities.add(s.city);
+			if (s.center_name) {
+				center_names.add(s.center_name);
+				if (s.city) {
+					if (!cityToCentersMap[s.city]) cityToCentersMap[s.city] = new Set();
+					cityToCentersMap[s.city].add(s.center_name);
+				}
+			}
+			if (s.landmark) landmarks.add(s.landmark);
+		});
+
+		const cityToCenters: Record<string, string[]> = {};
+		for (const [city, centers] of Object.entries(cityToCentersMap)) {
+			cityToCenters[city] = Array.from(centers).sort();
 		}
 
 		return {
 			units: Array.from(units).sort(),
 			cities: Array.from(cities).sort(),
-			center_names: Array.from(center_names).sort(),
-			landmarks: Array.from(landmarks).sort()
+			center_names: Array.from(center_names).filter(c => !centerFilter || centerFilter.includes('ALL') || centerFilter.includes(c)).sort(),
+			landmarks: Array.from(landmarks).sort(),
+			cityToCenters
 		};
 	} catch (error) {
 		console.error('Error fetching lookups:', error);

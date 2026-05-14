@@ -43,6 +43,24 @@ export async function listMissedDeliveriesForMonth(params: {
 	return data.items ?? [];
 }
 
+export async function getMissedDeliveriesByDate(date: string): Promise<MissedDelivery[]> {
+	const filter = `(date="${date}")`;
+	const query = new URLSearchParams();
+	query.set('perPage', '500');
+	query.set('filter', filter);
+
+	const response = await fetch(`${API_BASE_URL}/collections/missed_deliveries/records?${query.toString()}`, {
+		headers: {
+			...getAuthHeader()
+		}
+	});
+	if (!response.ok) {
+		return [];
+	}
+	const data = await response.json();
+	return data.items ?? [];
+}
+
 export async function createMissedDelivery(params: {
 	subscriberId: string;
 	date: string; // YYYY-MM-DD

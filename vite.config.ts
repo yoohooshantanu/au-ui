@@ -7,7 +7,10 @@ export default defineConfig({
 	],
 	server: {
 		proxy: {
-
+			"/api/pay": {
+				target: "http://localhost:5000",
+				changeOrigin: true
+			}
 		}
 	}
 });

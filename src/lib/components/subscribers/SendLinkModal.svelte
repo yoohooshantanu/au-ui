@@ -4,6 +4,7 @@
 	import { updatePaymentCycle, type PaymentCycle } from '$lib/api/payment_cycles';
 	import { listPriceRules, type PriceRule } from '$lib/api/price_rules';
 	import { computeCycleTotal } from '$lib/utils/pricing';
+	import { savePaymentIntent, buildPaymentPageUrl } from '$lib/payu';
 	
 	export let cycle: PaymentCycle;
 	const dispatch = createEventDispatcher();
@@ -47,16 +48,51 @@
 	async function handleSend() {
 		isLoading = true;
 		errorMessage = '';
+
+		let popup: Window | null = null;
+		const phone = subscriber?.phone ? subscriber.phone.replace(/\\D/g, '') : '';
+		
+		// Open window synchronously during the click event so the browser doesn't block the popup
+		if (phone) {
+			popup = window.open('about:blank', '_blank');
+		}
+
 		try {
-			const paymentLink = `https://dummy.payment.link/${cycle.subscriber}/${Date.now()}`;
+			const txnId = `TX_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+			await savePaymentIntent({
+				txnId,
+				amount: String(amount),
+				productInfo: `Subscription for ${cycle.start_date.split('T')[0]}`,
+				firstName: subscriber?.name || 'Reader',
+				email: 'noemail@example.com',
+				phone: subscriber?.phone || '0000000000',
+				subscriberId: cycle.subscriber,
+				cycleId: cycle.id
+			});
+			
+			const paymentLink = buildPaymentPageUrl(txnId);
 
 			// In a real app, you would call an API to send an SMS/Email here.
-			// For now, we just update the record with the dummy link.
+			// For now, we update the record with the link.
 			await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
 
-			alert(`Dummy link sent!\n${paymentLink}`);
+			// Format the message for WhatsApp
+			const startDate = cycle.start_date ? cycle.start_date.split('T')[0] : '';
+			const endDate = cycle.end_date ? cycle.end_date.split('T')[0] : '';
+			const message = `Hello ${subscriber?.name || 'Reader'},\n\nYour newspaper bill of Rs. ${amount} is due for the period ${startDate} to ${endDate}.\n\nPlease pay using this secure link:\n${paymentLink}\n\nThank you!`;
+
+			if (phone && popup) {
+				// Use 91 country code assuming Indian phone numbers.
+				const waUrl = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
+				popup.location.href = waUrl;
+			} else {
+				if (popup) popup.close();
+				alert(`Payment link generated successfully!\n${paymentLink}`);
+			}
+			
 			dispatch('close');
 		} catch (e: any) {
+			if (popup) popup.close();
 			errorMessage = e.message;
 		} finally {
 			isLoading = false;

@@ -8,6 +8,7 @@ export interface AuthUser {
 	unit: string;
 	city?: string;
 	centers?: string[];
+	role?: string; // 'admin' or 'executive' (derived from unit='ALL')
 }
 
 // Get current user from localStorage or auth store
@@ -50,6 +51,31 @@ export function isAdmin(user: AuthUser | null = null): boolean {
 	
 	// Check for ALL access
 	return user.unit === 'ALL' && (user.city === 'ALL' || !user.city);
+}
+
+// Check if user is an executive (non-admin)
+export function isExecutive(user: AuthUser | null = null): boolean {
+	if (!user) user = getCurrentUser();
+	if (!user) return false;
+	return !isAdmin(user);
+}
+
+// Get the list of centers the user has access to
+export function getUserCenters(user: AuthUser | null = null): string[] {
+	if (!user) user = getCurrentUser();
+	if (!user) return [];
+	if (isAdmin(user)) return ['ALL'];
+	return user.centers || [];
+}
+
+// Check if user can edit/delete payments
+export function canEditPayments(user: AuthUser | null = null): boolean {
+	return isAdmin(user);
+}
+
+// Check if user can backdate daily track entries
+export function canBackdateDailyTrack(user: AuthUser | null = null): boolean {
+	return isAdmin(user);
 }
 
 // Check if user can view inventory (all authenticated users)
@@ -124,10 +150,16 @@ export async function authFetch(url: string, options: RequestInit = {}, customFe
 	
 	const response = await fetchFn(url, { ...options, headers });
 	
-	// Handle 401/403 globally if needed
-	if (response.status === 401 || response.status === 403) {
-		// Could redirect to login or show permission denied
-		console.warn('Authentication or authorization failed');
+	// Handle 401 globally (Authentication expired/invalid)
+	// Do not handle 403 here, as it means the user shouldn't lose their session just because they lack permission to a specific resource
+	if (response.status === 401) {
+		console.warn('Authentication failed. Token may be expired.');
+		if (browser) {
+			localStorage.removeItem('user');
+			localStorage.removeItem('authToken');
+			// Use window.location to force a full reload and clear any cached memory state
+			window.location.href = '/dashboard/login?error=expired';
+		}
 	}
 	
 	return response;

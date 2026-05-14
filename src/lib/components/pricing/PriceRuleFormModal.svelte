@@ -8,7 +8,6 @@
 	const dispatch = createEventDispatcher();
 	const isEditing = !!rule;
 
-	let date = rule?.date ?? '';
 	let scope_type: PriceScopeType = (rule?.scope_type ?? 'unit') as PriceScopeType;
 	let scope_value = rule?.scope_value ?? '';
 	let price: number = Number(rule?.price ?? 8);
@@ -41,10 +40,6 @@
 
 	function handleSave() {
 		errorMessage = '';
-		if (!date) {
-			errorMessage = 'Date is required.';
-			return;
-		}
 		if (!isDefaultScope && !scope_value.trim()) {
 			errorMessage = 'Scope value is required.';
 			return;
@@ -55,7 +50,7 @@
 		}
 
 		dispatch('save', {
-			date,
+			date: '2000-01-01', // PocketBase schema requires a date, providing a dummy permanent date
 			scope_type,
 			scope_value: (isDefaultScope ? 'default' : scope_value.trim()),
 			price: Number(price),
@@ -69,10 +64,6 @@
 		<h3 class="font-bold text-lg mb-4 text-gray-900">{isEditing ? 'Edit' : 'Create'} Price Rule</h3>
 
 		<div class="space-y-4">
-			<div>
-				<label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-				<input id="date" type="date" class="block w-full rounded-md border-gray-300 shadow-sm" bind:value={date} />
-			</div>
 			<div class="grid grid-cols-2 gap-3">
 				<div>
 					<label for="scope_type" class="block text-sm font-medium text-gray-700 mb-1">Scope</label>
@@ -97,7 +88,7 @@
 						value="default"
 						disabled
 					/>
-					<p class="text-xs text-gray-500 mt-1">This will set the base daily price from the selected date onward.</p>
+					<p class="text-xs text-gray-500 mt-1">This will set the base daily price permanently.</p>
 				{:else}
 					<select id="scope_value" class="block w-full rounded-md border-gray-300 shadow-sm" bind:value={scope_value}>
 						<option value="">Select...</option>

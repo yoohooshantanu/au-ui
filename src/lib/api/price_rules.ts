@@ -20,15 +20,10 @@ function getAuthHeader(): Record<string, string> {
 	return { Authorization: `Bearer ${token}` };
 }
 
-export async function listPriceRules(params: { start: string; end: string }): Promise<PriceRule[]> {
-	const { start, end } = params;
-	// Don't filter on is_active at the API layer because the field may not exist in all PB schemas.
-	// We filter client-side (treat missing is_active as active).
-	const filter = `((date>="${start}" && date<="${end}") || (scope_type="default" && date<="${end}"))`;
+export async function listPriceRules(): Promise<PriceRule[]> {
 	const query = new URLSearchParams();
 	query.set('perPage', '500');
-	query.set('sort', '-date');
-	query.set('filter', filter);
+	query.set('sort', 'scope_type,scope_value');
 
 	const response = await fetch(`${API_BASE_URL}/collections/price_rules/records?${query.toString()}`, {
 		headers: {
