@@ -98,7 +98,7 @@ export async function getSubscribers(
 // No changes needed here. `Partial<Subscriber>` will automatically
 // include the new fields `center_name` and `landmark`.
 export async function createSubscriber(data: Partial<Subscriber>): Promise<Subscriber> {
-	const response = await fetch(`${API_BASE_URL}/collections/subscribers/records`, {
+	const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(data)
@@ -112,7 +112,7 @@ export async function createSubscriber(data: Partial<Subscriber>): Promise<Subsc
 
 // No changes needed here either for the same reason as createSubscriber.
 export async function updateSubscriber(id: string, data: Partial<Subscriber>): Promise<Subscriber> {
-	const response = await fetch(`${API_BASE_URL}/collections/subscribers/records/${id}`, {
+	const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records/${id}`, {
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(data)
@@ -125,7 +125,7 @@ export async function updateSubscriber(id: string, data: Partial<Subscriber>): P
 }
 
 export async function deleteSubscriber(id: string): Promise<void> {
-	const response = await fetch(`${API_BASE_URL}/collections/subscribers/records/${id}`, {
+	const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records/${id}`, {
 		method: 'DELETE'
 	});
 	if (!response.ok) {
@@ -139,7 +139,7 @@ export async function deleteSubscriber(id: string): Promise<void> {
 }
 
 export async function getSubscriberById(id: string): Promise<Subscriber> {
-	const response = await fetch(`${API_BASE_URL}/collections/subscribers/records/${id}`);
+	const response = await authFetch(`${API_BASE_URL}/collections/subscribers/records/${id}`);
 	if (!response.ok) {
 		const errorData = await response.json().catch(() => ({ message: 'Failed to fetch subscriber' }));
 		throw new Error(errorData.message || 'Failed to fetch subscriber');
@@ -153,7 +153,7 @@ export async function getSubscriberPaymentCycles(id: string): Promise<PaymentCyc
 	query.set('filter', `subscriber = '${id.replace(/'/g, "\\'")}'`);
 	query.set('sort', '-start_date');
 	
-	const response = await fetch(`${API_BASE_URL}/collections/payment_cycles/records?${query.toString()}`);
+	const response = await authFetch(`${API_BASE_URL}/collections/payment_cycles/records?${query.toString()}`);
 	if (!response.ok) {
 		throw new Error('Failed to fetch subscriber payment cycles');
 	}
