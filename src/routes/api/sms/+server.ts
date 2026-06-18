@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { SMS_API_USERNAME, SMS_API_PASSWORD } from '$env/static/private';
+import { env } from '$env/dynamic/private';
+const { SMS_API_USERNAME, SMS_API_PASSWORD } = env;
 
 const VISPL_API_URL = 'https://bulksmsapi.vispl.in/';
 const SENDER_ID = 'AMARED';

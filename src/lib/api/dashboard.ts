@@ -30,7 +30,7 @@ export async function getDashboardStats(customFetch?: typeof fetch, centerFilter
 		const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
 		// Use authFetch to ensure API Rules are applied
-		const fetchFn = customFetch || authFetch;
+		const fetchFn = (url: string, options?: RequestInit) => authFetch(url, options, customFetch);
 
 		// --- Fetch ALL subscribers using pagination ---
 		let allSubscribers: any[] = [];

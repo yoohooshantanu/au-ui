@@ -48,7 +48,7 @@ export async function getSubscribers(
 	const query = new URLSearchParams();
 	const filters: string[] = [];
 
-	const fetchFn = customFetch || authFetch;
+	const fetchFn = (url: string, options?: RequestInit) => authFetch(url, options, customFetch);
 
 	function quote(value: string) {
 		return `'${value.replace(/'/g, "\\'")}'`;

@@ -1,4 +1,5 @@
-import { PAYU_KEY, PAYU_SALT, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD } from '$env/static/private';
+import { env } from '$env/dynamic/private';
+const { PAYU_KEY, PAYU_SALT, PB_ADMIN_EMAIL, PB_ADMIN_PASSWORD } = env;
 import { error } from '@sveltejs/kit';
 import crypto from 'crypto';
 
