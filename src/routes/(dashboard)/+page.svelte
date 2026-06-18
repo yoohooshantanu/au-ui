@@ -17,7 +17,7 @@
 
 				// For executives, pass their center filter
 				const centers = getUserCenters();
-				stats = await getDashboardStats(undefined, userIsAdmin ? undefined : centers);
+				stats = await getDashboardStats(undefined, userIsAdmin ? undefined : centers, user);
 			} catch (e: any) {
 				error = e.message;
 			} finally {

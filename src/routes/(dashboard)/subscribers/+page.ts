@@ -63,7 +63,7 @@
                         center_name,
                         landmark,
                         subscriberIds: subscriberIds?.[0] === '__none__' ? [] : subscriberIds,
-                        centerFilter: userIsAdmin ? undefined : userCenters
+                        roleUser: userIsAdmin ? undefined : user
                     });
 
             console.log('DEBUG: Subscribers API Response:', JSON.stringify(subscribersData, null, 2));

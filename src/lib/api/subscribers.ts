@@ -42,6 +42,7 @@ export async function getSubscribers(
 		landmark?: string;
 		subscriberIds?: string[];
 		centerFilter?: string[];
+		roleUser?: any; // The AuthUser object for role-based filtering
 	} = {},
 	customFetch?: typeof fetch
 ): Promise<PaginatedSubscribers> {
@@ -73,8 +74,21 @@ export async function getSubscribers(
 		filters.push(`(${subset})`);
 	}
 
-	// Apply executive center filtering
-	if (params.centerFilter && params.centerFilter.length > 0 && !params.centerFilter.includes('ALL')) {
+	// Apply secure role-based filtering using the user's object
+	if (params.roleUser) {
+		if (params.roleUser.unit && params.roleUser.unit !== 'ALL') {
+			filters.push(`unit = ${quote(params.roleUser.unit)}`);
+		}
+		if (params.roleUser.city && params.roleUser.city !== 'ALL') {
+			filters.push(`city = ${quote(params.roleUser.city)}`);
+		}
+		const centers = params.roleUser.centers || [];
+		if (centers.length > 0 && !centers.includes('ALL')) {
+			const centerSubset = centers.map((c: string) => `center_name = ${quote(c)}`).join(' || ');
+			filters.push(`(${centerSubset})`);
+		}
+	} else if (params.centerFilter && params.centerFilter.length > 0 && !params.centerFilter.includes('ALL')) {
+		// Legacy fallback for centerFilter
 		const centerSubset = params.centerFilter.map((c) => `center_name = ${quote(c)}`).join(' || ');
 		filters.push(`(${centerSubset})`);
 	}

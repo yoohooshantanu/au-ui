@@ -22,7 +22,7 @@ export interface Lookups {
 /**
  * Fetches the main statistics for the dashboard homepage.
  */
-export async function getDashboardStats(customFetch?: typeof fetch, centerFilter?: string[]): Promise<DashboardStats> {
+export async function getDashboardStats(customFetch?: typeof fetch, centerFilter?: string[], user?: any): Promise<DashboardStats> {
 	try {
 		// Get current month dates
 		const now = new Date();
@@ -64,11 +64,25 @@ export async function getDashboardStats(customFetch?: typeof fetch, centerFilter
 		}
 
 		// Calculate statistics using the FULL dataset
-		// If centerFilter is provided, filter subscribers and cycles by those centers
+		// If user is an executive, filter subscribers and cycles by their unit/city/centers
 		let filteredSubscribers = allSubscribers;
 		let filteredCycles = allPaymentCycles;
 
-		if (centerFilter && centerFilter.length > 0 && !centerFilter.includes('ALL')) {
+		if (user && user.unit !== 'ALL') {
+			filteredSubscribers = allSubscribers.filter((s: any) => {
+				if (user.unit && s.unit !== user.unit) return false;
+				if (user.city && user.city !== 'ALL' && s.city !== user.city) return false;
+				const centers = user.centers || [];
+				if (centers.length > 0 && !centers.includes('ALL')) {
+					if (!centers.includes(s.center_name)) return false;
+				}
+				return true;
+			});
+			const filteredSubIds = new Set(filteredSubscribers.map((s: any) => s.id));
+			filteredCycles = allPaymentCycles.filter((c: any) => filteredSubIds.has(c.subscriber));
+			totalSubscriberCount = filteredSubscribers.length;
+		} else if (centerFilter && centerFilter.length > 0 && !centerFilter.includes('ALL')) {
+			// Legacy fallback
 			filteredSubscribers = allSubscribers.filter((s: any) => centerFilter.includes(s.center_name));
 			const filteredSubIds = new Set(filteredSubscribers.map((s: any) => s.id));
 			filteredCycles = allPaymentCycles.filter((c: any) => filteredSubIds.has(c.subscriber));
