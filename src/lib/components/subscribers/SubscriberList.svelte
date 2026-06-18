@@ -113,17 +113,45 @@
 					await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
 				}
 
-				// Build WhatsApp message
-				const paymentLink = links[0]; // Primary link
-				const message = `Dear ${sub.name},\n\nYour Amar Ujala subscription payment of Rs. ${totalAmount.toFixed(2)} is due.\n\nPay securely here:\n${paymentLink}\n\nThank you!\n- Amar Ujala`;
-
-				// Format phone for WhatsApp (add 91 country code if not present)
-				let phone = sub.phone.replace(/\D/g, ''); // remove non-digits
+				// Format phone for SMS
+				let phone = sub.phone.replace(/\D/g, '');
 				if (phone.length === 10) phone = '91' + phone;
 
-				// Open WhatsApp with pre-filled message
-				const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-				window.open(whatsappUrl, '_blank');
+				const dFormat = (iso: string) => {
+					if (!iso) return '';
+					const d = new Date(iso);
+					if (isNaN(d.getTime())) return iso;
+					return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+				};
+
+				// Send SMS for each due cycle
+				for (const cycle of dueCycles) {
+					const cycleAmount = Number(cycle.amount || 0) - Number(cycle.coupon_amount || 0);
+					const cycleTxnId = links[dueCycles.indexOf(cycle)].split('/').pop();
+
+					const variables = {
+						name: sub.name,
+						month: new Date(cycle.start_date).toLocaleString('en-US', { month: 'long' }),
+						amount: cycleAmount.toFixed(2),
+						total: cycleAmount.toFixed(2),
+						dueDate: dFormat(cycle.end_date),
+						startDate: dFormat(cycle.start_date),
+						endDate: dFormat(cycle.end_date),
+						paymentCycleId: cycleTxnId
+					};
+
+					await fetch('/api/sms', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({
+							phoneNumber: phone,
+							templateType: 'payment_link',
+							variables
+						})
+					});
+				}
+				
+				alert('Payment Link SMS sent successfully!');
 
 				// Also copy to clipboard as backup
 				try {

@@ -45,7 +45,7 @@ export async function POST({ request }) {
         let adminToken = '';
         if (PB_ADMIN_EMAIL && PB_ADMIN_PASSWORD) {
             try {
-                const authRes = await fetch(`${PB_URL}/api/admins/auth-with-password`, {
+                const authRes = await fetch(`${PB_URL}/api/collections/_superusers/auth-with-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

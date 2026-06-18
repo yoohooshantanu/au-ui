@@ -144,7 +144,9 @@
 				if (!subCycles || subCycles.length === 0) {
 					// No previous cycles exist, create their very first cycle
 					if (sub.start_date) {
-						newStartDate = new Date(sub.start_date.split('T')[0]);
+						newStartDate = new Date(sub.start_date.split(' ')[0].split('T')[0]);
+					} else if (sub.created) {
+						newStartDate = new Date(sub.created.split(' ')[0].split('T')[0]);
 					} else {
 						newStartDate = new Date(today.getFullYear(), today.getMonth(), 1);
 					}

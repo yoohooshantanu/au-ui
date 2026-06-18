@@ -123,7 +123,6 @@
 				</div>
 
 				<!-- --- NEW: Start Date Input --- -->
-				{#if isAdmin()}
 				<div>
 					<label for="start_date" class="label">Start Date</label>
 					<input
@@ -133,7 +132,6 @@
 						bind:value={formData.start_date}
 					/>
 				</div>
-				{/if}
 
 				<!-- Status Dropdown -->
 				<div>

@@ -152,7 +152,14 @@
 	function isDisabled(date: Date) {
 		// Only future days or days before start_date are blocked.
 		if (isFuture(date)) return true;
-		if (subscriber?.start_date && toYmd(date) < subscriber.start_date.split('T')[0]) return true;
+		
+		let sDateStr = null;
+		if (subscriber?.start_date) {
+			sDateStr = subscriber.start_date.split(' ')[0].split('T')[0];
+		} else if (subscriber?.created) {
+			sDateStr = subscriber.created.split(' ')[0].split('T')[0];
+		}
+		if (sDateStr && toYmd(date) < sDateStr) return true;
 		
 		// If there is a billing cycle, strictly disable days outside it
 		if (billingCycle) {

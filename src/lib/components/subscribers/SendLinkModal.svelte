@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { getSubscriberById, type Subscriber } from '$lib/api/subscribers';
-	import { updatePaymentCycle, type PaymentCycle } from '$lib/api/payment_cycles';
+	import type { PaymentCycle } from '$lib/api/payment_cycles';
 	import { listPriceRules, type PriceRule } from '$lib/api/price_rules';
 	import { computeCycleTotal } from '$lib/utils/pricing';
-	import { savePaymentIntent, buildPaymentPageUrl } from '$lib/payu';
 	
 	export let cycle: PaymentCycle;
 	const dispatch = createEventDispatcher();
@@ -16,12 +15,30 @@
 	let amount = baseAmount;
 	let isLoading = false;
 	let errorMessage = '';
+	let messageType: 'reminder' | 'payment_link' = 'reminder';
 
 	function ymdFromIso(iso: string) {
 		if (!iso) return '';
 		if (iso.includes('T')) return iso.split('T')[0];
-		// Assume already YYYY-MM-DD
 		return iso;
+	}
+
+	function formatDate(isoStr: string) {
+		if (!isoStr) return '';
+		const d = new Date(isoStr);
+		if (isNaN(d.getTime())) return isoStr;
+		// Format as DD-MM-YYYY as shown in template
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		return `${day}-${month}-${year}`;
+	}
+
+	function getMonthName(isoStr: string) {
+		if (!isoStr) return '';
+		const d = new Date(isoStr);
+		if (isNaN(d.getTime())) return '';
+		return d.toLocaleString('en-US', { month: 'long' });
 	}
 
 	onMount(async () => {
@@ -36,7 +53,6 @@
 			baseAmount = total - Number(cycle.coupon_amount || 0);
 			amount = baseAmount;
 		} catch (e: any) {
-			// Pricing is optional; fall back to stored cycle.amount - coupon.
 			pricingError = e.message || 'Pricing rules not available';
 			priceRules = [];
 			subscriber = null;
@@ -45,54 +61,53 @@
 		}
 	});
 
-	async function handleSend() {
+	async function handleSend(type: 'reminder' | 'payment_link') {
 		isLoading = true;
 		errorMessage = '';
-
-		let popup: Window | null = null;
-		const phone = subscriber?.phone ? subscriber.phone.replace(/\\D/g, '') : '';
-		
-		// Open window synchronously during the click event so the browser doesn't block the popup
-		if (phone) {
-			popup = window.open('about:blank', '_blank');
-		}
-
 		try {
-			const txnId = `TX_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-			await savePaymentIntent({
-				txnId,
-				amount: String(amount),
-				productInfo: `Subscription for ${cycle.start_date.split('T')[0]}`,
-				firstName: subscriber?.name || 'Reader',
-				email: 'noemail@example.com',
-				phone: subscriber?.phone || '0000000000',
-				subscriberId: cycle.subscriber,
-				cycleId: cycle.id
-			});
-			
-			const paymentLink = buildPaymentPageUrl(txnId);
-
-			// In a real app, you would call an API to send an SMS/Email here.
-			// For now, we update the record with the link.
-			await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
-
-			// Format the message for WhatsApp
-			const startDate = cycle.start_date ? cycle.start_date.split('T')[0] : '';
-			const endDate = cycle.end_date ? cycle.end_date.split('T')[0] : '';
-			const message = `Hello ${subscriber?.name || 'Reader'},\n\nYour newspaper bill of Rs. ${amount} is due for the period ${startDate} to ${endDate}.\n\nPlease pay using this secure link:\n${paymentLink}\n\nThank you!`;
-
-			if (phone && popup) {
-				// Use 91 country code assuming Indian phone numbers.
-				const waUrl = `https://wa.me/91${phone}?text=${encodeURIComponent(message)}`;
-				popup.location.href = waUrl;
-			} else {
-				if (popup) popup.close();
-				alert(`Payment link generated successfully!\n${paymentLink}`);
+			if (!subscriber || !subscriber.phone) {
+				throw new Error('Subscriber mobile number is missing.');
 			}
+
+			const phone = subscriber.phone;
+
+			const startDate = formatDate(cycle.start_date);
+			const endDate = formatDate(cycle.end_date);
+			const month = getMonthName(cycle.start_date);
 			
+			// If cycle.due_date isn't explicitly defined, fallback to end_date.
+			// Assuming DLT template expects DD-MM-YYYY
+			const dueDate = formatDate((cycle as any).due_date || cycle.end_date);
+
+			const variables = {
+				name: subscriber.name,
+				month: month,
+				amount: amount.toString(),
+				total: amount.toString(),
+				dueDate: dueDate,
+				startDate: startDate,
+				endDate: endDate,
+				paymentCycleId: cycle.id
+			};
+
+			const response = await fetch('/api/sms', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					phoneNumber: phone,
+					templateType: type,
+					variables
+				})
+			});
+
+			const result = await response.json();
+			if (!response.ok) {
+				throw new Error(result.error || 'Failed to send SMS');
+			}
+
+			alert('SMS sent successfully!');
 			dispatch('close');
 		} catch (e: any) {
-			if (popup) popup.close();
 			errorMessage = e.message;
 		} finally {
 			isLoading = false;
@@ -102,13 +117,14 @@
 
 <div class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
 	<div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6">
-		<h3 class="font-bold text-lg mb-4">Send Payment Link</h3>
+		<h3 class="font-bold text-lg mb-4">Send SMS</h3>
 		<p class="text-sm text-gray-600 mb-4">
-			You can adjust the amount before sending a new payment link to the reader.
+			Adjust the amount if needed and choose which message to send to the reader.
 		</p>
+
 		<div class="mb-4">
 			<label for="amount" class="block text-sm font-medium text-gray-700 mb-1">Payment Amount (Rs.)</label>
-			<input type="number" id="amount" class="block w-full rounded-md border-gray-300 shadow-sm" bind:value={amount} />
+			<input type="number" id="amount" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" bind:value={amount} />
 			{#if pricingError}
 				<p class="text-xs text-gray-500 mt-1">{pricingError}. Using stored amount.</p>
 			{/if}
@@ -116,13 +132,16 @@
 
 		{#if errorMessage}<p class="text-sm text-red-600">{errorMessage}</p>{/if}
 
-		<div class="pt-4 flex justify-end gap-3">
-			<button on:click={() => dispatch('close')} class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+		<div class="pt-4 flex flex-col gap-2">
+			<button on:click={() => handleSend('reminder')} disabled={isLoading} class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
+				{isLoading ? 'Sending...' : 'Send Reminder'}
+			</button>
+			<button on:click={() => handleSend('payment_link')} disabled={isLoading} class="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 disabled:opacity-50">
+				{isLoading ? 'Sending...' : 'Send Payment Link'}
+			</button>
+			<button on:click={() => dispatch('close')} class="mt-2 w-full rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                 Cancel
             </button>
-			<button on:click={handleSend} disabled={isLoading} class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50">
-				{isLoading ? 'Sending...' : 'Send Link'}
-			</button>
 		</div>
 	</div>
 </div>

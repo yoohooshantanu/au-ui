@@ -16,6 +16,9 @@
 	let userIsAdmin = false;
 	let showGenerateModal = false;
 	let priceRules: PriceRule[] = [];
+	
+	let selectedCycles: string[] = [];
+	let isBulkSending = false;
 
 	onMount(() => {
 		userIsAdmin = checkIsAdmin();
@@ -71,6 +74,7 @@
 	async function loadData() {
 		isLoading = true;
 		error = null;
+		selectedCycles = []; // Reset selection
 		try {
 			const pageNum = Number($page.url.searchParams.get('page') ?? '1');
 			const isDueParam = $page.url.searchParams.get('is_due');
@@ -100,8 +104,6 @@
 		}
 	}
 
-	// Load data when the URL changes
-	// onMount handled above
 	$: $page.url, loadData();
 
 	async function handleDeleteAllPayments() {
@@ -148,7 +150,8 @@
 
 	function ymdFromIso(iso: string) {
 		if (!iso) return '';
-		return new Date(iso).toISOString().split('T')[0];
+		if (iso.includes('T')) return iso.split('T')[0];
+		return iso;
 	}
 
 	function computedTotal(cycle: any) {
@@ -165,6 +168,97 @@
 			});
 		} catch (e) {
 			return Number(cycle.amount || 0);
+		}
+	}
+
+	// Bulk SMS Functions
+	function toggleAll(e: Event) {
+		const target = e.target as HTMLInputElement;
+		if (target.checked && cyclesData) {
+			selectedCycles = cyclesData.items.map(c => c.id);
+		} else {
+			selectedCycles = [];
+		}
+	}
+
+	function getMonthName(isoStr: string) {
+		if (!isoStr) return '';
+		const d = new Date(isoStr);
+		if (isNaN(d.getTime())) return '';
+		return d.toLocaleString('en-US', { month: 'long' });
+	}
+	
+	function formatDateDLT(isoStr: string) {
+		if (!isoStr) return '';
+		const d = new Date(isoStr);
+		if (isNaN(d.getTime())) return isoStr;
+		const day = String(d.getDate()).padStart(2, '0');
+		const month = String(d.getMonth() + 1).padStart(2, '0');
+		const year = d.getFullYear();
+		return `${day}-${month}-${year}`;
+	}
+
+	async function bulkSendSMS(type: 'reminder' | 'payment_link') {
+		if (!cyclesData || selectedCycles.length === 0) return;
+		if (!confirm(`Are you sure you want to send the ${type === 'reminder' ? 'Reminder' : 'Payment Link'} message to ${selectedCycles.length} selected readers?`)) return;
+		
+		isBulkSending = true;
+		let successCount = 0;
+		let failCount = 0;
+
+		try {
+			for (const cycleId of selectedCycles) {
+				const cycle = cyclesData.items.find(c => c.id === cycleId);
+				if (!cycle || !cycle.subscriber_details || !cycle.subscriber_details.phone) {
+					failCount++;
+					continue;
+				}
+
+				const amount = computedTotal(cycle) - Number(cycle.coupon_amount || 0);
+				const phone = cycle.subscriber_details.phone;
+				const startDate = formatDateDLT(cycle.start_date);
+				const endDate = formatDateDLT(cycle.end_date);
+				const month = getMonthName(cycle.start_date);
+				const dueDate = formatDateDLT((cycle as any).due_date || cycle.end_date);
+
+				const variables = {
+					name: cycle.subscriber_details.name,
+					month: month,
+					amount: amount.toString(),
+					total: amount.toString(),
+					dueDate: dueDate,
+					startDate: startDate,
+					endDate: endDate,
+					paymentCycleId: cycle.id
+				};
+
+				const response = await fetch('/api/sms', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						phoneNumber: phone,
+						templateType: type,
+						variables
+					})
+				});
+
+				const resultText = await response.text();
+				const isProviderError = resultText.toLowerCase().includes('error') || resultText.toLowerCase().includes('fail');
+
+				if (response.ok && !isProviderError) {
+					successCount++;
+				} else {
+					console.error(`SMS Failed for ${phone}:`, resultText);
+					failCount++;
+				}
+			}
+			
+			alert(`Bulk Send Complete!\n\nSuccessful: ${successCount}\nFailed (or missing phone): ${failCount}`);
+			selectedCycles = [];
+		} catch (e: any) {
+			alert('Bulk send interrupted: ' + e.message);
+		} finally {
+			isBulkSending = false;
 		}
 	}
 </script>
@@ -260,12 +354,38 @@
 		</form>
 	</div>
 
+	<!-- Bulk Action Bar -->
+	{#if selectedCycles.length > 0}
+	<div class="bg-indigo-50 p-4 rounded-lg shadow-sm mb-6 flex justify-between items-center border border-indigo-100">
+		<div class="text-indigo-800 font-medium">
+			{selectedCycles.length} payment(s) selected
+		</div>
+		<div class="flex gap-2">
+			<button
+				on:click={() => bulkSendSMS('reminder')}
+				disabled={isBulkSending}
+				class="rounded-md bg-white px-4 py-2 text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-300 hover:bg-indigo-50 disabled:opacity-50"
+			>
+				{isBulkSending ? 'Sending...' : 'Bulk Send Reminder'}
+			</button>
+			<button
+				on:click={() => bulkSendSMS('payment_link')}
+				disabled={isBulkSending}
+				class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
+			>
+				{isBulkSending ? 'Sending...' : 'Bulk Send Payment Link'}
+			</button>
+		</div>
+	</div>
+	{/if}
+
 	<!-- Data Table -->
 	<div class="bg-white rounded-lg shadow-sm overflow-hidden">
 		<div class="overflow-x-auto">
 			<table class="w-full min-w-[800px]">
 				<thead class="bg-gray-50">
 					<tr>
+						<th class="p-4 w-12"><input type="checkbox" on:change={toggleAll} checked={cyclesData !== null && cyclesData.items.length > 0 && selectedCycles.length === cyclesData.items.length} class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" /></th>
 						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Reader</th>
 						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Unit & Center</th>
 						<th class="p-4 text-left text-xs font-semibold text-gray-500 uppercase">Executive</th>
@@ -281,6 +401,7 @@
 					{#if isLoading}
 						{#each { length: 8 } as _}
 							<tr class="animate-pulse">
+								<td class="p-4"><div class="h-4 bg-gray-200 rounded w-4"></div></td>
 								<td class="p-4"><div class="h-4 bg-gray-200 rounded w-3/4"></div></td>
 								<td class="p-4"><div class="h-4 bg-gray-200 rounded w-2/3"></div></td>
 								<td class="p-4"><div class="h-4 bg-gray-200 rounded w-1/2"></div></td>
@@ -294,7 +415,10 @@
 						{/each}
 					{:else if cyclesData && cyclesData.items.length > 0}
 						{#each cyclesData.items as cycle (cycle.id)}
-							<tr class="hover:bg-gray-50">
+							<tr class="hover:bg-gray-50 {selectedCycles.includes(cycle.id) ? 'bg-indigo-50/50' : ''}">
+								<td class="p-4">
+									<input type="checkbox" bind:group={selectedCycles} value={cycle.id} class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600" />
+								</td>
 								<td class="p-4 font-medium text-gray-800">
 									<div>{cycle.subscriber_details?.name ?? 'N/A'}</div>
 									<div class="text-xs text-gray-500">{cycle.subscriber_details?.phone ?? ''}</div>
@@ -335,11 +459,13 @@
 								<td class="p-4 text-sm text-gray-600">
 									{formatDate(cycle.start_date)} - {formatDate(cycle.end_date)}
 								</td>
-								<td class="p-4 text-sm text-gray-600">{formatDate(cycle.last_payment)}</td>
+								<td class="p-4 text-sm text-gray-600">
+									{formatDate(cycle.last_payment || (Number(cycle.amount_paid || 0) > 0 ? cycle.updated : null))}
+								</td>
 							</tr>
 						{/each}
 					{:else}
-						<tr><td colspan="9" class="p-8 text-center text-gray-500">No payment cycles found.</td></tr>
+						<tr><td colspan="10" class="p-8 text-center text-gray-500">No payment cycles found.</td></tr>
 					{/if}
 				</tbody>
 			</table>

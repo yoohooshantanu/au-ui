@@ -116,6 +116,38 @@
 						
 						const paymentLink = buildPaymentPageUrl(txnId);
 						await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
+
+						// Send SMS
+						let phone = subscriber.phone.replace(/\D/g, '');
+						if (phone.length === 10) phone = '91' + phone;
+
+						const dFormat = (iso: string) => {
+							if (!iso) return '';
+							const d = new Date(iso);
+							if (isNaN(d.getTime())) return iso;
+							return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+						};
+
+						const variables = {
+							name: subscriber.name,
+							month: new Date(cycle.start_date).toLocaleString('en-US', { month: 'long' }),
+							amount: String(cycle.amount),
+							total: String(cycle.amount),
+							dueDate: dFormat(cycle.end_date),
+							startDate: dFormat(cycle.start_date),
+							endDate: dFormat(cycle.end_date),
+							paymentCycleId: txnId
+						};
+
+						await fetch('/api/sms', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								phoneNumber: phone,
+								templateType: 'payment_link',
+								variables
+							})
+						});
 					}
 					successCount++;
 				} catch (e: any) {

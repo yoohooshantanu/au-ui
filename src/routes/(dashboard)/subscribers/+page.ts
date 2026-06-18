@@ -26,7 +26,7 @@
             const userCenters = getUserCenters(user);
 
             // Fetch lookups - pass center filter for executives
-            const lookupsPromise = getLookups(userIsAdmin ? undefined : userCenters);
+            const lookupsPromise = getLookups(fetch, userIsAdmin ? undefined : userCenters);
             let subscriberIds: string[] | undefined = undefined;
 
             if (has_due_payment) {

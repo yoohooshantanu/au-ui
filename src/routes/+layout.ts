@@ -16,7 +16,7 @@ export const load: LayoutLoad = ({ url }) => {
 		throw redirect(307, '/dashboard');
 	}
 
-	if (!isLoggedIn && pathname !== '/dashboard/login') {
+	if (!isLoggedIn && pathname !== '/dashboard/login' && !pathname.startsWith('/pay')) {
 		throw redirect(307, '/dashboard/login');
 	}
 

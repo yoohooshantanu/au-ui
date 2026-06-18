@@ -132,7 +132,16 @@ export function canAccess(params: { unit?: string; city?: string; center?: strin
 // Get auth headers for API requests
 export function getAuthHeader(): Record<string, string> {
 	if (!browser) return {};
-	const token = localStorage.getItem('authToken');
+	let token = localStorage.getItem('authToken');
+	if (!token) {
+		const pbAuthStr = localStorage.getItem('pocketbase_auth');
+		if (pbAuthStr) {
+			try {
+				const pbAuth = JSON.parse(pbAuthStr);
+				if (pbAuth.token) token = pbAuth.token;
+			} catch (e) {}
+		}
+	}
 	if (!token) return {};
 	return { Authorization: `Bearer ${token}` };
 }
@@ -148,7 +157,13 @@ export async function authFetch(url: string, options: RequestInit = {}, customFe
 	// Use customFetch if provided (for server-side), otherwise use global fetch
 	const fetchFn = customFetch || fetch;
 	
-	const response = await fetchFn(url, { ...options, headers });
+	const fetchOptions: RequestInit = {
+		...options,
+		headers,
+		cache: options.cache || 'no-store' // Prevent caching GET requests by default
+	};
+	
+	const response = await fetchFn(url, fetchOptions);
 	
 	// Handle 401 globally (Authentication expired/invalid)
 	// Do not handle 403 here, as it means the user shouldn't lose their session just because they lack permission to a specific resource

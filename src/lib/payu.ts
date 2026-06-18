@@ -56,7 +56,7 @@
 				headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
 				body: JSON.stringify({
 					txn_id: data.txnId,
-					amount: data.amount,
+					amount: data.amount.toString(),
 					product_info: data.productInfo,
 					first_name: data.firstName,
 					email: data.email,
@@ -64,7 +64,7 @@
 					subscriber: data.subscriberId,
 					payment_cycle: data.cycleId,
 					status: 'pending'
-				})	
+				})
 			});
 			if (!response.ok) {
 				throw new Error('Failed to save payment intent');
