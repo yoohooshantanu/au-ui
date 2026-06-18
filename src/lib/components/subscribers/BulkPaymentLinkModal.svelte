@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { createEventDispatcher } from 'svelte';
 	import { getSubscribers, type Subscriber } from '$lib/api/subscribers';
 	import { getPaymentCycles, updatePaymentCycle, type PaymentCycle } from '$lib/api/payment_cycles';
@@ -139,7 +140,6 @@
 							paymentCycleId: txnId
 						};
 
-						import { base } from '$app/paths';
 						await fetch(`${base}/api/sms`, {
 							method: 'POST',
 							headers: { 'Content-Type': 'application/json' },
