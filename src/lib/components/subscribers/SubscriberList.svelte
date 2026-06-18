@@ -140,7 +140,8 @@
 						paymentCycleId: cycleTxnId
 					};
 
-					await fetch('/api/sms', {
+					import { base } from '$app/paths';
+					await fetch(`${base}/api/sms`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({

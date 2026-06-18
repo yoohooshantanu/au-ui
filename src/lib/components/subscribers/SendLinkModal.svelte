@@ -90,7 +90,8 @@
 				paymentCycleId: cycle.id
 			};
 
-			const response = await fetch('/api/sms', {
+			import { base } from '$app/paths';
+			const response = await fetch(`${base}/api/sms`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
