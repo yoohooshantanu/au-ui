@@ -34,16 +34,40 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ error: 'Invalid template type' }, { status: 400 });
 		}
 
-		const message = template.formatMessage(variables);
+		const safeName = (variables.name || 'Subscriber').trim().replace(/\s+/g, ' ');
+		const safeAmount = String(variables.amount || '0').trim();
+		const safeStartDate = String(variables.startDate || '').trim();
+		const safeEndDate = String(variables.endDate || '').trim();
+		const safeMonth = String(variables.month || '').trim();
+		const safeTotal = String(variables.total || '0').trim();
+		const safeDueDate = String(variables.dueDate || '').trim();
+		const safePaymentCycleId = String(variables.paymentCycleId || '').trim();
+
+		// Update variables object with sanitized values
+		const sanitizedVars = {
+			name: safeName,
+			amount: safeAmount,
+			startDate: safeStartDate,
+			endDate: safeEndDate,
+			month: safeMonth,
+			total: safeTotal,
+			dueDate: safeDueDate,
+			paymentCycleId: safePaymentCycleId
+		};
+
+		const message = template.formatMessage(sanitizedVars);
 		
 		const params = new URLSearchParams({
 			username: SMS_API_USERNAME,
 			password: SMS_API_PASSWORD,
 			messageType: 'text',
-			mobile: phoneNumber,
+			mobile: phoneNumber.replace(/\D/g, ''), // Strip non-digits
 			senderId: SENDER_ID,
 			ContentID: template.contentId,
 			EntityID: ENTITY_ID,
+			// Also include alternative DLT parameter names just in case VISPL uses them
+			template_id: template.contentId,
+			pe_id: ENTITY_ID,
 			message: message
 		});
 
