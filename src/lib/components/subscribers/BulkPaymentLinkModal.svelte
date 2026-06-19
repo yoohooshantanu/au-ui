@@ -83,13 +83,16 @@
 		}
 	}
 	
-	async function sendBulkPaymentLinks() {
+	let currentAction = '';
+
+	async function sendBulkSMS(type: 'reminder' | 'payment_link') {
 		if (checkedReaderIds.length === 0) {
 			errorMessage = 'No readers selected';
 			return;
 		}
 		
 		isLoading = true;
+		currentAction = type;
 		errorMessage = '';
 		successMessage = '';
 		
@@ -101,22 +104,27 @@
 			
 			for (const { subscriber, dueCycles } of readersToProcess) {
 				try {
-					// Generate payment link for each due cycle
+					// Generate SMS for each due cycle
 					for (const cycle of dueCycles) {
-						const txnId = `TX_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-						await savePaymentIntent({
-							txnId,
-							amount: String(cycle.amount),
-							productInfo: 'Subscription Payment',
-							firstName: subscriber.name || 'Reader',
-							email: 'noemail@example.com',
-							phone: subscriber.phone || '0000000000',
-							subscriberId: subscriber.id,
-							cycleId: cycle.id
-						});
+						let txnId = cycle.id; // Default to cycle id for reminders
 						
-						const paymentLink = buildPaymentPageUrl(txnId);
-						await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
+						// Only create payment intent for payment_link
+						if (type === 'payment_link') {
+							txnId = `TX_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+							await savePaymentIntent({
+								txnId,
+								amount: String(cycle.amount),
+								productInfo: 'Subscription Payment',
+								firstName: subscriber.name || 'Reader',
+								email: 'noemail@example.com',
+								phone: subscriber.phone || '0000000000',
+								subscriberId: subscriber.id,
+								cycleId: cycle.id
+							});
+							
+							const paymentLink = buildPaymentPageUrl(txnId);
+							await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
+						}
 
 						// Send SMS
 						let phone = subscriber.phone.replace(/\D/g, '');
@@ -145,7 +153,7 @@
 							headers: { 'Content-Type': 'application/json' },
 							body: JSON.stringify({
 								phoneNumber: phone,
-								templateType: 'payment_link',
+								templateType: type,
 								variables
 							})
 						});
@@ -153,11 +161,11 @@
 					successCount++;
 				} catch (e: any) {
 					errorCount++;
-					console.error(`Failed to send payment link for ${subscriber.name}:`, e);
+					console.error(`Failed to send SMS for ${subscriber.name}:`, e);
 				}
 			}
 			
-			successMessage = `Payment links sent to ${successCount} readers${errorCount > 0 ? ` (${errorCount} failed)` : ''}`;
+			successMessage = `${type === 'reminder' ? 'Reminders' : 'Payment links'} sent to ${successCount} readers${errorCount > 0 ? ` (${errorCount} failed)` : ''}`;
 			
 			if (successCount > 0) {
 				setTimeout(() => {
@@ -167,9 +175,10 @@
 			}
 			
 		} catch (e: any) {
-			errorMessage = 'Failed to send payment links: ' + (e.message || 'Unknown error');
+			errorMessage = `Failed to send ${type === 'reminder' ? 'reminders' : 'payment links'}: ` + (e.message || 'Unknown error');
 		} finally {
 			isLoading = false;
+			currentAction = '';
 		}
 	}
 	
@@ -353,11 +362,21 @@
 			</button>
 			{#if availableReaders.length > 0}
 				<button
-					on:click={sendBulkPaymentLinks}
+					on:click={() => sendBulkSMS('reminder')}
 					disabled={isLoading || checkedReaderIds.length === 0}
 					class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 				>
-					{#if isLoading}
+					{#if isLoading && currentAction === 'reminder'}
+						<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+					{/if}
+					Send Reminders ({checkedReaderIds.length})
+				</button>
+				<button
+					on:click={() => sendBulkSMS('payment_link')}
+					disabled={isLoading || checkedReaderIds.length === 0}
+					class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+				>
+					{#if isLoading && currentAction === 'payment_link'}
 						<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
 					{/if}
 					Send Payment Links ({checkedReaderIds.length})
