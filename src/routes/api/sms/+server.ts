@@ -47,7 +47,11 @@ export const POST: RequestHandler = async ({ request }) => {
 			message: message
 		});
 
-		const requestUrl = `${VISPL_API_URL}?${params.toString()}`;
+		// Very important for Indian SMS providers: URLSearchParams encodes spaces as '+'.
+		// Some providers (like VISPL) pass the literal '+' to the DLT scrubber, causing a template mismatch.
+		// We must manually replace '+' with '%20' so spaces are correctly parsed.
+		const queryString = params.toString().replace(/\+/g, '%20');
+		const requestUrl = `${VISPL_API_URL}?${queryString}`;
 
 		const response = await fetch(requestUrl);
 		const resultText = await response.text();
