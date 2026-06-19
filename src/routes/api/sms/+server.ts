@@ -77,6 +77,16 @@ export const POST: RequestHandler = async ({ request }) => {
 		const queryString = params.toString().replace(/\+/g, '%20');
 		const requestUrl = `${VISPL_API_URL}?${queryString}`;
 
+		// Logging the exact output for DLT scrubber debugging
+		console.log('--- SMS DLT DEBUG LOG ---');
+		console.log('Template Type:', templateType);
+		console.log('Phone Number:', phoneNumber);
+		console.log('Sanitized Vars:', sanitizedVars);
+		console.log('EXACT MESSAGE TEXT (Sent to VISPL):', message);
+		console.log('EXACT MESSAGE LENGTH:', message.length);
+		console.log('REQUEST URL:', requestUrl);
+		console.log('---------------------------');
+
 		const response = await fetch(requestUrl);
 		const resultText = await response.text();
 
