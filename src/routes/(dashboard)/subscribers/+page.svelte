@@ -42,32 +42,16 @@
 
 	// Reactive reset when filter changes (Navigating URL updates data)
 	// We track the last loaded query string to distinguish filter changes from spurious reloads
-    let lastQueryString: string | null = null;
-
-	$: if (data.subscribersData ) {
+	$: if (data.subscribersData) {
         import('$lib/stores/auth').then(store => {
              store.user.subscribe(u => { /* ... */ });
         });
 
-        // Only reset if the URL query string has actually changed (Navigation)
-        // or if it's the very first load.
-        // We use $page.url.search to track this.
-        import('$app/stores').then(({ page }) => {
-            page.subscribe(p => {
-                const currentQuery = p.url.search;
-                
-                 // If query changed OR it's a hard reload (page 1 from server match)
-                 // Or if lastQueryString is null (initial load)
-                if (lastQueryString === null || (currentQuery !== lastQueryString && data.subscribersData?.page === 1)) {
-                    console.log('DEBUG: Filter/Nav changed or Initial Load, resetting list.');
-                    allSubscribers = data.subscribersData.items;
-                    currentPage = data.subscribersData.page;
-                    totalItems = data.subscribersData.totalItems;
-                    hasMore = currentPage < data.subscribersData.totalPages;
-                    lastQueryString = currentQuery;
-                }
-            })
-        });
+        // Always reset when server data changes (e.g. after invalidateAll or navigation)
+        allSubscribers = data.subscribersData.items;
+        currentPage = data.subscribersData.page;
+        totalItems = data.subscribersData.totalItems;
+        hasMore = currentPage < data.subscribersData.totalPages;
 	}
 	onMount(() => {
 		const observer = new IntersectionObserver((entries) => {

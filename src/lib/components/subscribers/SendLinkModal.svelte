@@ -5,6 +5,7 @@
 	import type { PaymentCycle } from '$lib/api/payment_cycles';
 	import { listPriceRules, type PriceRule } from '$lib/api/price_rules';
 	import { computeCycleTotal } from '$lib/utils/pricing';
+	import { savePaymentIntent, buildPaymentPageUrl } from '$lib/payu';
 	
 	export let cycle: PaymentCycle;
 	const dispatch = createEventDispatcher();
@@ -80,6 +81,28 @@
 			// Assuming DLT template expects DD-MM-YYYY
 			const dueDate = formatDate((cycle as any).due_date || cycle.end_date);
 
+			let txnId = cycle.id;
+			
+			if (type === 'payment_link') {
+				txnId = `TX_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+				await savePaymentIntent({
+					txnId,
+					amount: amount.toString(),
+					productInfo: 'Subscription Payment',
+					firstName: subscriber.name || 'Reader',
+					email: 'noemail@example.com',
+					phone: subscriber.phone || '0000000000',
+					subscriberId: subscriber.id,
+					cycleId: cycle.id
+				});
+				
+				// We still need to record the payment link in the DB if we want, but SendLinkModal doesn't strictly update the cycle here.
+				// Bulk updates cycle.payment_link, we'll do the same.
+				const { updatePaymentCycle } = await import('$lib/api/payment_cycles');
+				const paymentLink = buildPaymentPageUrl(txnId);
+				await updatePaymentCycle(cycle.id, { payment_link: paymentLink });
+			}
+
 			const variables = {
 				name: subscriber.name,
 				month: month,
@@ -88,10 +111,10 @@
 				dueDate: dueDate,
 				startDate: startDate,
 				endDate: endDate,
-				paymentCycleId: cycle.id
+				paymentCycleId: txnId
 			};
 
-			const response = await fetch(`${base}/api/sms`, {
+			const response = await fetch(`${base}/app-api/sms`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({

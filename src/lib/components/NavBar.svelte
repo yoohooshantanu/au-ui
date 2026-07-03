@@ -12,7 +12,7 @@
     { href: "/dashboard/subscribers", label: "Readers", adminOnly: false },
     { href: "/dashboard/payments", label: "Payments", adminOnly: false },
     { href: "/dashboard/coupons", label: "Coupons", adminOnly: true },
-    { href: "/dashboard/pricing", label: "Pricing", adminOnly: true },
+    { href: "/dashboard/pricing", label: "Newspaper Pricing", adminOnly: true },
     { href: "/dashboard/users", label: "AU_POC", adminOnly: true },
     { href: "/dashboard/reports", label: "Reports", adminOnly: false },
     { href: "/dashboard/complaints", label: "Complaints", adminOnly: false },

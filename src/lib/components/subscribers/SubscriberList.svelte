@@ -141,7 +141,7 @@
 						paymentCycleId: cycleTxnId
 					};
 
-					await fetch(`${base}/api/sms`, {
+					await fetch(`${base}/app-api/sms`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({

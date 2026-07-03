@@ -160,17 +160,6 @@
 			sDateStr = subscriber.created.split(' ')[0].split('T')[0];
 		}
 		if (sDateStr && toYmd(date) < sDateStr) return true;
-		
-		// If there is a billing cycle, strictly disable days outside it
-		if (billingCycle) {
-			const { start, end } = getCycleBounds(billingCycle);
-			if (start && end) {
-				const d = toYmd(date);
-				const s = toYmd(start);
-				const e = toYmd(end);
-				if (d < s || d > e) return true;
-			}
-		}
 
 		return false;
 	}

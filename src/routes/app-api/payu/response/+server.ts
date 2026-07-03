@@ -95,23 +95,37 @@ export async function POST({ request }) {
 
                 // 4. Update the related payment cycle
                 if (intent.payment_cycle) {
-                    await fetch(`${PB_URL}/api/collections/payment_cycles/records/${intent.payment_cycle}`, {
-                        method: 'PATCH',
-                        headers: pbPatchHeaders,
-                        body: JSON.stringify({
-                            is_due: false,
-                            amount_paid: amount,
-                            payment_mode: 'online',
-                            last_payment: new Date().toISOString()
-                        })
-                    });
+                    try {
+                        const cycleRes = await fetch(`${PB_URL}/api/collections/payment_cycles/records/${intent.payment_cycle}`, { headers: pbPatchHeaders });
+                        if (cycleRes.ok) {
+                            const cycleData = await cycleRes.json();
+                            const currentPaid = Number(cycleData.amount_paid) || 0;
+                            const incomingAmount = Number(amount) || 0;
+                            const newAmountPaid = currentPaid + incomingAmount;
+                            const totalDue = (Number(cycleData.amount) || 0) - (Number(cycleData.coupon_amount) || 0);
+                            const fullyPaid = newAmountPaid >= totalDue;
+
+                            await fetch(`${PB_URL}/api/collections/payment_cycles/records/${intent.payment_cycle}`, {
+                                method: 'PATCH',
+                                headers: pbPatchHeaders,
+                                body: JSON.stringify({
+                                    is_due: !fullyPaid,
+                                    amount_paid: newAmountPaid,
+                                    payment_mode: cycleData.payment_mode ? `${cycleData.payment_mode}+online` : 'online',
+                                    last_payment: new Date().toISOString()
+                                })
+                            });
+                        }
+                    } catch (cycleErr) {
+                        console.error('Failed to update cycle', cycleErr);
+                    }
                 }
                 
                 // 5. Send Notification SMS with Invoice Link
                 try {
                     const subscriberName = firstname || intent.first_name || 'Subscriber';
                     const hostUrl = request.headers.get('origin') || process.env.PUBLIC_BASE_URL || 'http://localhost:5173';
-                    const invoiceUrl = `${hostUrl}${base}/api/invoice/${txnid}`;
+                    const invoiceUrl = `${hostUrl}${base}/app-api/invoice/${txnid}`;
                     
                     const phone = intent.phone;
                     if (phone) {

@@ -68,10 +68,10 @@
 <div class="space-y-4">
 	<div class="flex justify-between items-center">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900">Pricing Rules</h1>
-			<p class="text-gray-600 mt-1">Default daily price: <span class="font-mono">Rs. {DEFAULT_DAILY_PRICE}</span>. Add location-specific permanent overrides by Unit, Center, or City.</p>
+			<h1 class="text-3xl font-bold text-gray-900">Newspaper Pricing <span class="text-gray-400 font-normal">/</span> Panchang Day Rates</h1>
+			<p class="text-gray-600 mt-1">Default daily price: <span class="font-mono">Rs. {DEFAULT_DAILY_PRICE}</span>. Set custom day-to-date prices (e.g. additional pages on Sundays/festivals) by Unit, Center, City, or globally.</p>
 		</div>
-		<button on:click={handleAdd} class="btn-primary">Add Rule</button>
+		<button on:click={handleAdd} class="btn-primary">Add Day Rate</button>
 	</div>
 
 

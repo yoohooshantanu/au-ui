@@ -22,7 +22,7 @@ export async function getPocUsers(customFetch?: typeof fetch): Promise<PocUser[]
 }
 
 export async function createPocUser(payload: Omit<PocUser, 'id' | 'created' | 'updated'>): Promise<PocUser> {
-	const response = await authFetch(`/api/admin/users`, {
+	const response = await authFetch(`/app-api/admin/users`, {
 		method: 'POST',
 		body: JSON.stringify({ ...payload, emailVisibility: true })
 	});
@@ -43,7 +43,7 @@ export async function createPocUser(payload: Omit<PocUser, 'id' | 'created' | 'u
 }
 
 export async function updatePocUser(id: string, payload: Partial<PocUser>): Promise<PocUser> {
-	const response = await authFetch(`/api/admin/users/${id}`, {
+	const response = await authFetch(`/app-api/admin/users/${id}`, {
 		method: 'PATCH',
 		body: JSON.stringify(payload)
 	});
@@ -55,7 +55,7 @@ export async function updatePocUser(id: string, payload: Partial<PocUser>): Prom
 }
 
 export async function deletePocUser(id: string): Promise<void> {
-	const response = await authFetch(`/api/admin/users/${id}`, {
+	const response = await authFetch(`/app-api/admin/users/${id}`, {
 		method: 'DELETE'
 	});
 	if (!response.ok) throw new Error('Failed to delete POC user');

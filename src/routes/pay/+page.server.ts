@@ -6,8 +6,12 @@ import crypto from 'crypto';
 // If PocketBase runs locally on 8090, use this as internal endpoint.
 const PB_URL = 'http://127.0.0.1:8090';
 
-export async function load({ params }) {
-	const txnId = params.txnId;
+export async function load({ url }) {
+	const txnId = url.searchParams.get('id');
+	
+	if (!txnId) {
+		throw error(400, 'Missing payment transaction ID in URL (?id=...)');
+	}
 
 	try {
 		// Retrieve PocketBase Admin Token to bypass guest restrictions

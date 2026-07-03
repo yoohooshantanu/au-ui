@@ -15,9 +15,9 @@ const TEMPLATES = {
 			`REMINDER! ${vars.name} Month ${vars.month} Bill due ${vars.amount} and Total due ${vars.total} Due by ${vars.dueDate} - AMAR UJALA`
 	},
 	payment_link: {
-		contentId: '1707178107043229335',
+		contentId: '1707178281136561332',
 		formatMessage: (vars: any) => 
-			`${vars.name}, your bill of Rs.${vars.amount} for ${vars.startDate} to ${vars.endDate} is due. Pay: https://disha.amarujaladigital.com/dashboard/pay/${vars.paymentCycleId}`
+			`${vars.name}, your bill of Rs.${vars.amount} for ${vars.startDate} to ${vars.endDate} is due. Pay: https://disha.amarujaladigital.com/dashboard/pay?id=${vars.paymentCycleId} - Amar Ujala`
 	}
 };
 

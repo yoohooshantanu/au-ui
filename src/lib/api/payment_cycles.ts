@@ -101,7 +101,7 @@
 			query.set('filter', filters.join(' && '));
 		}
 
-		query.set('expand', 'subscriber,collected_by');
+		query.set('expand', 'subscriber.collector,collected_by');
 		query.set('sort', '-created');
 
 		const response = await authFetch(`${API_BASE_URL}/collections/payment_cycles/records?${query.toString()}`, {}, customFetch);

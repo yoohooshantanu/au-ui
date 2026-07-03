@@ -174,6 +174,52 @@
           alert(e.message || 'Failed to record payment');
         }
       }
+
+      async function handleReversePayment(cycle: PaymentCycle) {
+        const alreadyPaid = Number(cycle.amount_paid || 0);
+
+        if (alreadyPaid <= 0) {
+          alert('This cycle has no recorded payments to reverse.');
+          return;
+        }
+
+        const amountStr = prompt(
+          `Reverse Payment (Admin Only)\n\nAlready Paid: Rs. ${alreadyPaid.toFixed(2)}\n\nEnter amount to deduct (reverse):`,
+          alreadyPaid.toFixed(2)
+        );
+        if (!amountStr) return;
+        const deductAmount = parseFloat(amountStr);
+        if (isNaN(deductAmount) || deductAmount <= 0) {
+          alert('Please enter a valid amount.');
+          return;
+        }
+        if (deductAmount > alreadyPaid) {
+          alert(`Cannot deduct more than already paid (Rs. ${alreadyPaid.toFixed(2)}).`);
+          return;
+        }
+
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const newTotalPaid = alreadyPaid - deductAmount;
+          const totalDue = computedTotal(cycle) - Number(cycle.coupon_amount || 0);
+          const fullyPaid = newTotalPaid >= totalDue;
+          const prevNote = cycle.note || '';
+          const newNote = prevNote
+            ? `${prevNote}\nReversed Rs. ${deductAmount.toFixed(2)} on ${today}`
+            : `Reversed Rs. ${deductAmount.toFixed(2)} on ${today}`;
+
+          await updatePaymentCycle(cycle.id, {
+            amount_paid: newTotalPaid,
+            is_due: !fullyPaid,
+            note: newNote,
+          } as Partial<PaymentCycle>);
+
+          alert(`Successfully reversed Rs. ${deductAmount.toFixed(2)}.`);
+          await loadDue();
+        } catch (e: any) {
+          alert(e.message || 'Failed to reverse payment');
+        }
+      }
     </script>
 
     <div class="space-y-4">
@@ -227,6 +273,7 @@
                         <button class="btn-action" on:click={() => handleAddCoupon(cycle)}>Add Coupon</button>
                         <button class="btn-action bg-green-50 text-green-700 ring-green-200 hover:bg-green-100" on:click={() => handleCashPayment(cycle)}>Cash Payment</button>
                         {#if userCanEdit}
+                        <button class="btn-action bg-red-50 text-red-700 ring-red-200 hover:bg-red-100" on:click={() => handleReversePayment(cycle)}>Reverse</button>
                         <button class="btn-action" on:click={() => handleEdit(cycle)}>Edit</button>
                         <button class="btn-action-destructive" on:click={() => handleDelete(cycle.id)}>Delete</button>
                         {/if}

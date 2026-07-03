@@ -232,7 +232,7 @@
 					paymentCycleId: cycle.id
 				};
 
-				const response = await fetch('/api/sms', {
+				const response = await fetch('/app-api/sms', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
@@ -428,7 +428,7 @@
 									<div class="text-xs text-gray-500">{cycle.subscriber_details?.center_name ?? 'N/A'}</div>
 								</td>
 								<td class="p-4 text-sm text-gray-600">
-									<div class="font-medium">{cycle.collector_details?.name ?? '—'}</div>
+									<div class="font-medium">{cycle.collector_details?.name || cycle.subscriber_details?.expand?.collector?.name || '—'}</div>
 								</td>
 								<td class="p-4">
 									{#if cycle.is_due}
@@ -460,7 +460,7 @@
 									{formatDate(cycle.start_date)} - {formatDate(cycle.end_date)}
 								</td>
 								<td class="p-4 text-sm text-gray-600">
-									{formatDate(cycle.last_payment || (Number(cycle.amount_paid || 0) > 0 ? cycle.updated : null))}
+									{cycle.last_payment ? formatDate(cycle.last_payment) : (Number(cycle.amount_paid || 0) > 0 ? formatDate(cycle.updated) : 'N/A')}
 								</td>
 							</tr>
 						{/each}

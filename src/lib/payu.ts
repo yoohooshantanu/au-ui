@@ -12,10 +12,10 @@
 
 			// After payment, PayU POSTs the receipt here for backend processing
 			get successUrl() {
-				return `${typeof window !== 'undefined' ? window.location.origin : ''}${base}/api/payu/response`;
+				return `${typeof window !== 'undefined' ? window.location.origin : ''}${base}/app-api/payu/response`;
 			},
 			get failureUrl() {
-				return `${typeof window !== 'undefined' ? window.location.origin : ''}${base}/api/payu/response`;
+				return `${typeof window !== 'undefined' ? window.location.origin : ''}${base}/app-api/payu/response`;
 			}
 		};
 
@@ -31,9 +31,9 @@
 		 */
 		export function buildPaymentPageUrl(txnId: string): string {
 			if (typeof window !== 'undefined') {
-				return `${window.location.origin}${base}/pay/${txnId}`;
+				return `${window.location.origin}${base}/pay?id=${txnId}`;
 			}
-			return `${base}/pay/${txnId}`;
+			return `${base}/pay?id=${txnId}`;
 		}
 
 		export interface PayUPaymentData {
